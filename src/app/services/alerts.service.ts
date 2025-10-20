@@ -6,6 +6,12 @@ import { environment } from '../../environments/environment';
 
 export type AlertStatus = 'pending' | 'accepted' | 'resolved';
 
+export interface CompleteMissionDto {
+  outcome: 'resolved' | 'not_found' | 'false_alarm' | 'other';
+  notes?: string;
+  numInjured?: number;
+}
+
 export interface Alert {
   _id: string;
   description: string;
@@ -86,6 +92,38 @@ export class AlertsService {
   async accept(id: string): Promise<Alert> {
     return firstValueFrom(
       this.http.patch<Alert>(`${environment.api}/api/alerts/${id}/accept`, {})
+    );
+  }
+
+  /**
+   * Cancel the current mission for this alert.
+   * Backend should set the alert back to 'pending' and free assignment.
+   * Uses the /mission endpoint as requested.
+   */
+  async reopen(id: string): Promise<void> {
+    await firstValueFrom(
+      this.http.put<void>(`${environment.api}/api/mission/${id}/cancel`, {})
+    );
+  }
+
+  /**
+   * Complete the mission and persist the mission report.
+   * Backend should set the alert to 'resolved'.
+   * Uses the /mission endpoint as requested.
+   */
+  async complete(id: string, body: CompleteMissionDto): Promise<void> {
+    await firstValueFrom(
+      this.http.post<void>(`${environment.api}/api/mission/${id}/complete`, body)
+    );
+  }
+
+  /**
+   * (Optional) Get my active mission if the app needs to restore state on reload.
+   * Returns the alert tied to the current mission (shape aligned with Alert).
+   */
+  async getActiveMission(): Promise<Alert | null> {
+    return firstValueFrom(
+      this.http.get<Alert | null>(`${environment.api}/api/mission/active`)
     );
   }
 }

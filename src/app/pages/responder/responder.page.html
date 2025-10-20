@@ -23,8 +23,30 @@
         <ion-toggle [checked]="online" (ionChange)="toggleOnline($event)"></ion-toggle>
       </ion-item>
     </div>
-
-    @if (alerts.length) {
+    <!-- MISSION PANEL (visible only while an alert is accepted) -->
+    @if (currentMission) {
+      <div class="mission-panel">
+        <h2>Active mission</h2>
+        <ion-list lines="none">
+          <ion-item>
+            <ion-label>
+              <h3>{{ currentMission!.type }}</h3>
+              <p>{{ currentMission!.description }}</p>
+              <p class="meta">{{ currentMission!.createdAt | date: 'short' }}</p>
+              @if (currentMission!.numInjured !== null && currentMission!.numInjured !== undefined) {
+                <p class="meta">Injured: {{ currentMission!.numInjured }}</p>
+              }
+            </ion-label>
+          </ion-item>
+        </ion-list>
+        <div class="mission-actions">
+          <ion-button color="warning" (click)="cancelMission()" [disabled]="missionBusy">Cancel mission</ion-button>
+          <ion-button color="success" (click)="openComplete()" [disabled]="missionBusy">Complete</ion-button>
+          <ion-button fill="outline" (click)="openInMaps()">Open in Maps</ion-button>
+        </div>
+      </div>
+    }
+    @if (!currentMission && alerts.length) {
       <div class="alerts-panel">
         <h2>Active Alerts</h2>
         <ion-list lines="none">
@@ -59,7 +81,7 @@
       </div>
     }
 
-    @if (!alerts.length && !loadingAlerts) {
+    @if (!currentMission && !alerts.length && !loadingAlerts) {
       <div class="empty-state">
         <ion-icon name="notifications-off-outline"></ion-icon>
         <p>No alerts right now. Stay ready!</p>
@@ -72,4 +94,43 @@
       </div>
     }
   </div>
+  <!-- COMPLETE MISSION MODAL -->
+  <ion-modal [isOpen]="completeOpen" (didDismiss)="closeComplete()">
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Mission report</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeComplete()">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item>
+          <ion-label position="stacked">Outcome</ion-label>
+          <ion-select [(ngModel)]="missionReport.outcome">
+            <ion-select-option value="resolved">Resolved</ion-select-option>
+            <ion-select-option value="not_found">Not found / could not reach</ion-select-option>
+            <ion-select-option value="false_alarm">False alarm</ion-select-option>
+            <ion-select-option value="other">Other</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Number injured (optional)</ion-label>
+          <ion-input type="number" inputmode="numeric" [(ngModel)]="missionReport.numInjured"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Notes</ion-label>
+          <ion-textarea rows="6" autoGrow="true" [(ngModel)]="missionReport.notes"></ion-textarea>
+        </ion-item>
+      </ion-list>
+      <div class="mission-actions">
+        <ion-button color="success" expand="block" [disabled]="missionBusy" (click)="submitComplete()">
+          <ion-spinner *ngIf="missionBusy" name="crescent" slot="start"></ion-spinner>
+          Save report & resolve
+        </ion-button>
+      </div>
+    </ion-content>
+  </ion-modal>
+
 </ion-content>

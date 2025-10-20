@@ -104,7 +104,7 @@ export class LoginPage implements OnInit {
    * Routes the authenticated user to either the responder or giver map.
    */
   private redirect(role: UserRole): void {
-    const target = role === 'responder' ? '/respond' : '/MakeAlert';
+    const target = role === 'responder' ? '/respond' : '/alerts';
     this.router.navigateByUrl(target, { replaceUrl: true });
   }
 }

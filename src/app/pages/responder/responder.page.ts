@@ -17,19 +17,25 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonModal,
   IonSpinner,
   IonTitle,
   IonToggle,
   IonToolbar,
+  IonSelect,
+  IonSelectOption,
+  IonInput,
+  IonTextarea,
 } from '@ionic/angular/standalone';
 import type { ToggleCustomEvent } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
+import { FormsModule } from '@angular/forms';
 import { ToastController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { AlertsService, Alert } from '../../services/alerts.service';
 import { AuthService } from '../../services/auth.service';
 import { SocketService } from '../../services/socket.service';
-
+import 'leaflet-routing-machine';
 declare const L: any;
 
 @Component({
@@ -50,8 +56,14 @@ declare const L: any;
     IonToggle,
     IonSpinner,
     IonIcon,
+    IonModal,
+    IonSelect,
+    IonSelectOption,
+    IonInput,
+    IonTextarea,
     CommonModule,
     DatePipe,
+    FormsModule
   ],
 })
 /**
@@ -66,6 +78,16 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   acceptingId?: string;
   online = false;
 
+    // Mission state
+  currentMission: Alert | null = null;
+  missionBusy = false;
+  completeOpen = false;
+  missionReport: {
+    outcome: 'resolved' | 'not_found' | 'false_alarm' | 'other';
+    notes: string;
+    numInjured: number | null;
+  } = { outcome: 'resolved', notes: '', numInjured: null };
+
   private readonly alertsApi = inject(AlertsService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -75,6 +97,12 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   private alertMarkers = new Map<string, any>();
   private responderMarker?: any;
   private locationWatchId?: string;
+
+// Routing
+  private routingControl?: any;
+  private destinationMarker?: any;
+  private destLatLng?: { lat: number; lng: number };
+
 
   /**
    * Socket listeners convert raw payloads into typed alerts.
@@ -118,6 +146,7 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
       this.emitOffline();
     }
     this.stopLocationWatch();
+    this.clearRoute();
     this.socket.disconnect();
     this.clearAlertMarkers();
     this.responderMarker?.remove();
@@ -151,8 +180,12 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
     this.acceptingId = alert._id;
     try {
       const updated = await this.alertsApi.accept(alert._id);
+      this.currentMission = updated;
+      this.alerts = [];
+      this.refreshMarkers();
+      this.drawRouteToAlert(updated);
       this.processAlertUpdate(updated);
-      this.presentToast('Alert accepted. Let the reporter know you are coming!', 'success');
+      this.presentToast('Alert accepted. Navigate to the location!', 'success');
     } catch (error: any) {
       const message =
         error?.error?.message || 'Could not accept this alert. It may already be taken.';
@@ -214,6 +247,7 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
     }
     this.emitOffline();
     await this.stopLocationWatch();
+    this.clearRoute();
     this.responderMarker?.remove();
     this.responderMarker = undefined;
     this.online = false;
@@ -248,6 +282,12 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
           coordinates: [longitude, latitude],
           userId,
         });
+          if (this.currentMission && this.routingControl && this.destLatLng) {
+          this.routingControl.setWaypoints([
+            L.latLng(latitude, longitude),
+            L.latLng(this.destLatLng.lat, this.destLatLng.lng),
+          ]);
+        }
       }
     ) as unknown as string;
   }
@@ -393,6 +433,108 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  // Mission helpers
+  private drawRouteToAlert(alert: Alert): void {
+    if (!this.map || !alert.location?.coordinates) return;
+    const [lng, lat] = alert.location.coordinates;
+    this.destLatLng = { lat, lng };
+
+    // Clear other markers
+    this.clearAlertMarkers();
+
+    // Destination marker
+    this.destinationMarker?.remove();
+    this.destinationMarker = L.marker([lat, lng]).addTo(this.map);
+
+    // Build routing from current position to destination
+    const origin = this.responderMarker?.getLatLng();
+    if (!origin) return;
+
+    // Remove previous routing control if any
+    this.clearRoute();
+
+    this.routingControl = L.Routing.control({
+      waypoints: [L.latLng(origin.lat, origin.lng), L.latLng(lat, lng)],
+      addWaypoints: false,
+      draggableWaypoints: false,
+      fitSelectedRoutes: true,
+      routeWhileDragging: false,
+      show: false,
+      router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+      lineOptions: { addWaypoints: false },
+      createMarker: () => null, // hide default waypoint markers
+    }).addTo(this.map);
+  }
+
+  private clearRoute(): void {
+    if (this.routingControl) {
+      try { this.routingControl.remove(); } catch {}
+      this.routingControl = undefined;
+    }
+    if (this.destinationMarker) {
+      this.destinationMarker.remove();
+      this.destinationMarker = undefined;
+    }
+  }
+
+
+  // Mission actions
+  async cancelMission(): Promise<void> {
+    if (!this.currentMission) return;
+    this.missionBusy = true;
+    try {
+      await this.alertsApi.reopen(this.currentMission._id); // server puts it back to pending
+      this.presentToast('Mission cancelled. Alert reopened.', 'medium');
+      this.currentMission = null;
+      this.clearRoute();
+      await this.loadAlerts();
+    } catch {
+      this.presentToast('Could not cancel mission.', 'danger');
+    } finally {
+      this.missionBusy = false;
+    }
+  }
+
+  openComplete(): void {
+    this.completeOpen = true;
+  }
+
+  closeComplete(): void {
+    this.completeOpen = false;
+  }
+
+
+  async submitComplete(): Promise<void> {
+    if (!this.currentMission) return;
+    this.missionBusy = true;
+    try {
+      const payload = {
+        outcome: this.missionReport.outcome,
+        notes: this.missionReport.notes?.trim() || undefined,
+        numInjured: this.missionReport.numInjured ?? undefined,
+      };
+      await this.alertsApi.complete(this.currentMission._id, payload); // resolves alert + saves report
+      this.presentToast('Mission completed.', 'success');
+      this.completeOpen = false;
+      this.currentMission = null;
+      this.clearRoute();
+      await this.loadAlerts();
+    } catch {
+      this.presentToast('Could not save report.', 'danger');
+    } finally {
+      this.missionBusy = false;
+    }
+  }
+
+  openInMaps(): void {
+    if (!this.destLatLng) return;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${this.destLatLng.lat},${this.destLatLng.lng}`;
+    window.open(url, '_blank');
+  }
+
+
+
+
   /**
    * Parses incoming socket payloads and updates the collection of alerts.
    */
@@ -406,22 +548,26 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   /**
    * Inserts or replaces alerts in the local array and keeps markers in sync.
    */
+ 
   private upsertAlert(alert: Alert, notify: boolean): void {
     if (alert.status !== 'pending') {
       this.removeAlert(alert._id);
+      // If our current mission was resolved elsewhere, clean up
+      if (this.currentMission && this.currentMission._id === alert._id ) {
+        this.currentMission = null;
+        this.clearRoute();
+      }
       return;
     }
-    const index = this.alerts.findIndex((item) => item._id === alert._id);
-    if (index >= 0) {
-      this.alerts[index] = alert;
-    } else {
+    if (this.currentMission) return; // ignore list updates while on a mission
+    const index = this.alerts.findIndex((a) => a._id === alert._id);
+    if (index >= 0) this.alerts[index] = alert; else {
       this.alerts = [alert, ...this.alerts];
-      if (notify) {
-        this.presentToast('New alert nearby!', 'tertiary');
-      }
+      if (notify) this.presentToast('New alert nearby!', 'tertiary');
     }
     this.addOrUpdateMarker(alert);
   }
+
 
   /**
    * Handles socket updates for accepted/resolved alerts.
