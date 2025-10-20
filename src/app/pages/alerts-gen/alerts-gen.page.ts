@@ -84,29 +84,57 @@ export class AlertsGenPage implements OnInit {
     this.form.update(prev => ({ ...prev, numInjured: Number.isNaN(parsed) ? null : parsed }));
   }
 
-  async getCurrentLocation() {
-    try {
-      const position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true
-      });
-      this.setCoords(position.coords.latitude, position.coords.longitude);
-      return;
-    } catch (err) {
-      console.error('Geolocation error:', err);
-      if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        try {
-          const fallback = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
-          });
-          this.setCoords(fallback.coords.latitude, fallback.coords.longitude);
-          return;
-        } catch (fallbackErr) {
-          console.error('Fallback geolocation error:', fallbackErr);
-        }
-      }
-      this.errorMsg = 'Failed to fetch location. Check permissions or use a secure connection.';
-    }
+
+
+async getCurrentLocation() {
+  this.errorMsg = '';
+
+  // secure origin check (Chrome requires https or localhost)
+  const secure =
+    location.protocol === 'https:' ||
+    location.hostname === 'localhost' ||
+    location.hostname === '127.0.0.1';
+  if (!secure) {
+    this.errorMsg = 'Run on https or localhost.';
+    return;
   }
+
+  // if browser already blocked, don’t hang
+  try {
+    const perm = (navigator as any).permissions
+      ? await (navigator as any).permissions.query({ name: 'geolocation' as PermissionName })
+      : { state: 'prompt' };
+    if (perm.state === 'denied') {
+      this.errorMsg = 'Chrome blocked location. Click the lock icon → Site settings → Location → Allow.';
+      return;
+    }
+  } catch {}
+
+  // primary: single shot with timeout
+  try {
+    const pos = await Geolocation.getCurrentPosition({
+      enableHighAccuracy: false,
+      timeout: 8000,
+      maximumAge: 60000,
+    });
+    this.setCoords(pos.coords.latitude, pos.coords.longitude);
+    return;
+  } catch {}
+
+  // fallback: short watch (more reliable on desktop)
+  if ('geolocation' in navigator) {
+    await new Promise<void>((resolve, reject) => {
+      const id = navigator.geolocation.watchPosition(
+        p => { navigator.geolocation.clearWatch(id); this.setCoords(p.coords.latitude, p.coords.longitude); resolve(); },
+        e => { navigator.geolocation.clearWatch(id); reject(e); },
+        { enableHighAccuracy: false, maximumAge: 0 }
+      );
+      setTimeout(() => { navigator.geolocation.clearWatch(id); reject(new Error('timeout')); }, 10000);
+    }).catch(() => {
+      this.errorMsg = 'Enable Location for localhost:<port> in Chrome, then reload.';
+    });
+  }
+}
 
   onFileChange(event: any) {
     const file = event.target.files[0];
