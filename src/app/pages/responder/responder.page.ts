@@ -1,4 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
+import { ModalController } from '@ionic/angular';
 import {
   AfterViewInit,
   Component,
@@ -25,17 +26,22 @@ import {
   IonSelect,
   IonSelectOption,
   IonInput,
-  IonTextarea,
+  IonTextarea
 } from '@ionic/angular/standalone';
 import type { ToggleCustomEvent } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
 import { FormsModule } from '@angular/forms';
 import { ToastController } from '@ionic/angular';
 import { Router } from '@angular/router';
-import { AlertsService, Alert } from '../../services/alerts.service';
+import { AlertsService, Alert, MissionRecord } from '../../services/alerts.service';
 import { AuthService } from '../../services/auth.service';
 import { SocketService } from '../../services/socket.service';
 import 'leaflet-routing-machine';
+import { CompleteReportModal } from '../../modals/complete-report.modal';
+
+import jsPDF from 'jspdf';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 declare const L: any;
 
 @Component({
@@ -63,8 +69,9 @@ declare const L: any;
     IonTextarea,
     CommonModule,
     DatePipe,
-    FormsModule
+    FormsModule,
   ],
+  providers: [ModalController]
 })
 /**
  * Real-time dashboard for responders. Displays pending alerts on a Leaflet map,
@@ -80,6 +87,7 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
 
     // Mission state
   currentMission: Alert | null = null;
+  activeMission: MissionRecord | null = null;
   missionBusy = false;
   completeOpen = false;
   missionReport: {
@@ -93,6 +101,7 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly toastCtrl = inject(ToastController);
   private readonly socket = inject(SocketService);
+  private readonly modalCtrl = inject(ModalController)
   private map?: any;
   private alertMarkers = new Map<string, any>();
   private responderMarker?: any;
@@ -172,42 +181,38 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
    * Attempts to accept an alert and updates the list accordingly.
    */
   async acceptAlert(alert: Alert): Promise<void> {
-  if (!this.online) {
-    this.presentToast('Go online before responding to alerts.', 'warning');
-    return;
+    if (!this.online) {
+      this.presentToast('Go online before responding to alerts.', 'warning');
+      return;
+    }
+
+    this.acceptingId = alert._id;
+    try {
+      const { alert: acceptedAlert, activeMission } = await this.alertsApi.accept(alert._id);
+      this.currentMission = acceptedAlert;
+      this.activeMission = activeMission ?? null;
+
+      this.alerts = [acceptedAlert];
+      this.alertMarkers.forEach((marker, id) => {
+        if (id !== acceptedAlert._id) {
+          marker.remove();
+          this.alertMarkers.delete(id);
+        }
+      });
+
+      this.addOrUpdateMarker(acceptedAlert);
+
+      setTimeout(() => this.drawRouteToAlert(acceptedAlert), 500);
+
+      this.presentToast('Alert accepted. Navigate to the location!', 'success');
+    } catch (error: any) {
+      const message =
+        error?.error?.message || 'Could not accept this alert. It may already be taken.';
+      this.presentToast(message, 'danger');
+    } finally {
+      this.acceptingId = undefined;
+    }
   }
-
-  this.acceptingId = alert._id;
-  try {
-    const updated = await this.alertsApi.accept(alert._id);
-    console.log('Accepted alert response:', updated);
-    this.currentMission = updated;
-
-
-    // 🟩 Remove all other alert markers, keep only this one
-    this.alerts = [updated];
-    this.alertMarkers.forEach((marker, id) => {
-      if (id !== updated._id) {
-        marker.remove();
-        this.alertMarkers.delete(id);
-      }
-    });
-
-    // 🟩 Ensure marker for the accepted alert remains (or re-create it)
-    this.addOrUpdateMarker(updated);
-
-    // Draw route after a short delay to ensure location is set
-    setTimeout(() => this.drawRouteToAlert(updated), 500);
-
-    this.presentToast('Alert accepted. Navigate to the location!', 'success');
-  } catch (error: any) {
-    const message =
-      error?.error?.message || 'Could not accept this alert. It may already be taken.';
-    this.presentToast(message, 'danger');
-  } finally {
-    this.acceptingId = undefined;
-  }
-}
 
 
   /**
@@ -504,6 +509,7 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
       await this.alertsApi.reopen(this.currentMission._id); // server puts it back to pending
       this.presentToast('Mission cancelled. Alert reopened.', 'medium');
       this.currentMission = null;
+      this.activeMission = null;
       this.clearRoute();
       await this.loadAlerts();
     } catch {
@@ -513,9 +519,6 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  openComplete(): void {
-    this.completeOpen = true;
-  }
 
   closeComplete(): void {
     this.completeOpen = false;
@@ -525,16 +528,19 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   async submitComplete(): Promise<void> {
     if (!this.currentMission) return;
     this.missionBusy = true;
+    const mission = this.currentMission;
     try {
       const payload = {
         outcome: this.missionReport.outcome,
         notes: this.missionReport.notes?.trim() || undefined,
         numInjured: this.missionReport.numInjured ?? undefined,
       };
-      await this.alertsApi.complete(this.currentMission._id, payload); // resolves alert + saves report
-      this.presentToast('Mission completed.', 'success');
+      const result = await this.alertsApi.complete(this.currentMission._id, payload);
+      this.presentToast(result?.message ?? 'Mission completed.', 'success');
+       await this.exportMissionPdf(mission, payload);
       this.completeOpen = false;
       this.currentMission = null;
+      this.activeMission = null;
       this.clearRoute();
       await this.loadAlerts();
     } catch {
@@ -569,19 +575,24 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
  
   private upsertAlert(alert: Alert, notify: boolean): void {
     if (alert.status !== 'pending') {
-      this.removeAlert(alert._id);
-      // If our current mission was resolved elsewhere, clean up
-      if (this.currentMission && this.currentMission._id === alert._id ) {
-        this.currentMission = null;
-        this.clearRoute();
+      if (this.currentMission && this.currentMission._id === alert._id) {
+        this.currentMission = alert;
+        return;
       }
+      this.removeAlert(alert._id);
       return;
     }
-    if (this.currentMission) return; // ignore list updates while on a mission
+    if (this.currentMission) {
+      return; // ignore list updates while on a mission
+    }
     const index = this.alerts.findIndex((a) => a._id === alert._id);
-    if (index >= 0) this.alerts[index] = alert; else {
+    if (index >= 0) {
+      this.alerts[index] = alert;
+    } else {
       this.alerts = [alert, ...this.alerts];
-      if (notify) this.presentToast('New alert nearby!', 'tertiary');
+      if (notify) {
+        this.presentToast('New alert nearby!', 'tertiary');
+      }
     }
     this.addOrUpdateMarker(alert);
   }
@@ -591,9 +602,24 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
    * Handles socket updates for accepted/resolved alerts.
    */
   private processAlertUpdate(alert: Alert): void {
+    if (this.currentMission && this.currentMission._id === alert._id) {
+      if (alert.status === 'resolved') {
+        this.currentMission = null;
+        this.activeMission = null;
+        this.clearRoute();
+        this.presentToast('Mission completed elsewhere.', 'medium');
+        void this.loadAlerts();
+      } else {
+        this.currentMission = alert;
+      }
+    }
+
     if (alert.status === 'pending') {
       this.upsertAlert(alert, false);
-    } else {
+      return;
+    }
+
+    if (!this.currentMission || this.currentMission._id !== alert._id) {
       this.removeAlert(alert._id);
     }
   }
@@ -655,4 +681,78 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
     }
     return null;
   }
+
+  async openComplete() {
+  const modal = await this.modalCtrl.create({
+    component: CompleteReportModal, 
+    componentProps: { initial: this.missionReport },
+    canDismiss: true,
+  });
+  const { data, role } = await (await modal.present(), modal.onWillDismiss());
+  if (role === 'save') {
+    this.missionReport = data;
+    this.submitComplete();
+  }
+}
+
+private async exportMissionPdf(mission: Alert, report: {
+  outcome: 'resolved'|'not_found'|'false_alarm'|'other';
+  notes?: string;
+  numInjured?: number;
+}) {
+  const doc = new jsPDF();
+
+  const lines = [
+    'Mission Report',
+    '',
+    `ID: ${mission._id}`,
+    `Type: ${mission.type}`,
+    `Description: ${mission.description}`,
+    `Created: ${new Date(mission.createdAt).toLocaleString()}`,
+    mission.numInjured != null ? `Injured (alert): ${mission.numInjured}` : '',
+    '',
+    `Outcome: ${report.outcome}`,
+    report.numInjured != null ? `Injured (final): ${report.numInjured}` : '',
+    `Notes: ${report.notes ?? ''}`,
+  ].filter(Boolean);
+
+  doc.setFontSize(16);
+  doc.text(lines[0], 14, 18);
+  doc.setFontSize(11);
+  let y = 28;
+  for (let i = 1; i < lines.length; i++) {
+    y += 6;
+    doc.text(lines[i], 14, y);
+  }
+
+  // base64 PDF
+  const base64 = doc.output('datauristring').split(',')[1];
+  const filename = `mission_${mission._id}_${Date.now()}.pdf`;
+
+  // save into app Documents
+  await Filesystem.writeFile({
+    path:  `Download/mission_${Date.now()}.pdf`,
+    data: base64,
+    directory: Directory.Documents,
+  });
+
+  // get a sharable URI and open the platform share sheet
+  const { uri } = await Filesystem.getUri({
+    path: filename,
+    directory: Directory.Documents,
+  });
+
+  try {
+    await Share.share({
+      title: 'Mission report',
+      text: 'PDF saved. Share or move to Downloads.',
+      url: uri, // if Share complains on iOS, pass a data URL instead:
+                // 'data:application/pdf;base64,' + base64
+    });
+  } catch {
+    // optional fallback toast
+  }
+
+  await this.presentToast('PDF saved to Documents.', 'success');
+}
 }

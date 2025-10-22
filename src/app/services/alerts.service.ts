@@ -6,6 +6,29 @@ import { environment } from '../../environments/environment';
 
 export type AlertStatus = 'pending' | 'accepted' | 'resolved';
 
+export interface MissionRecord {
+  _id: string;
+  alert: string;
+  responder: string;
+  outcome: 'active' | 'resolved' | 'not_found' | 'false_alarm' | 'other';
+  notes?: string;
+  numInjured?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string;
+}
+
+export interface AcceptAlertResponse {
+  alert: Alert;
+  activeMission: MissionRecord;
+}
+
+export interface CompleteMissionResponse {
+  message: string;
+  completedMission: MissionRecord;
+  alert: Alert;
+}
+
 export interface CompleteMissionDto {
   outcome: 'resolved' | 'not_found' | 'false_alarm' | 'other';
   notes?: string;
@@ -89,9 +112,12 @@ export class AlertsService {
   /**
    * Marks an alert as accepted by the current responder.
    */
-  async accept(id: string): Promise<Alert> {
+  async accept(id: string): Promise<AcceptAlertResponse> {
     return firstValueFrom(
-      this.http.patch<Alert>(`${environment.api}/api/alerts/${id}/accept`, {})
+      this.http.patch<AcceptAlertResponse>(
+        `${environment.api}/api/alerts/${id}/accept`,
+        {}
+      )
     );
   }
 
@@ -111,9 +137,12 @@ export class AlertsService {
    * Backend should set the alert to 'resolved'.
    * Uses the /mission endpoint as requested.
    */
-  async complete(id: string, body: CompleteMissionDto): Promise<void> {
-    await firstValueFrom(
-      this.http.post<void>(`${environment.api}/api/mission/${id}/complete`, body)
+  async complete(id: string, body: CompleteMissionDto): Promise<CompleteMissionResponse> {
+    return firstValueFrom(
+      this.http.post<CompleteMissionResponse>(
+        `${environment.api}/api/mission/${id}/complete`,
+        body
+      )
     );
   }
 

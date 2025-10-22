@@ -110,6 +110,7 @@ export class AlertGiverPage implements AfterViewInit, OnDestroy {
   async ngAfterViewInit(): Promise<void> {
     await this.initMap();
     await this.loadAlerts();
+    await this.maybeShowAlertCreationToast();
   }
 
   /**
@@ -132,7 +133,7 @@ export class AlertGiverPage implements AfterViewInit, OnDestroy {
    * Navigates to the standalone alert creation page.
    */
   launchAlert(): void {
-    this.router.navigateByUrl('/MakeAlert');
+    this.router.navigateByUrl('/alerts/new');
   }
 
   /**
@@ -324,6 +325,7 @@ export class AlertGiverPage implements AfterViewInit, OnDestroy {
       }
     });
     this.fitToAlerts();
+    setTimeout(() => this.map?.invalidateSize(), 200);
   }
 
   /**
@@ -376,6 +378,22 @@ export class AlertGiverPage implements AfterViewInit, OnDestroy {
   private clearMarkers(): void {
     this.markers.forEach((marker) => marker.remove());
     this.markers = [];
+  }
+
+  private async maybeShowAlertCreationToast(): Promise<void> {
+    const state = (window.history.state ?? {}) as { alertCreated?: { nearby: number } };
+    const info = state.alertCreated;
+    if (!info) {
+      return;
+    }
+    const toast = await this.toastCtrl.create({
+      message: `Alert sent successfully. Nearby responders: ${info.nearby}`,
+      duration: 2500,
+      color: 'success',
+    });
+    toast.present();
+    const { alertCreated, ...rest } = state as Record<string, unknown> & { alertCreated?: { nearby: number } };
+    window.history.replaceState(rest, '', window.location.href);
   }
 
   /**

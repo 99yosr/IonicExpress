@@ -118,3 +118,39 @@ ion-content {
   font-size: 2.2rem;
   margin-bottom: 8px;
 }
+
+.mission-panel {
+  position: absolute;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  left: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 16px 16px 24px;
+  box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mission-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.mission-panel .meta {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.mission-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mission-actions ion-button {
+  flex: 1 1 140px;
+}

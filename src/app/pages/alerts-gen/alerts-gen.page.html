@@ -45,8 +45,11 @@
         <ion-button type="button" fill="outline" expand="block" (click)="presentActionSheet()" [disabled]="loading">
           Use camera or gallery
         </ion-button>
-    
+
         <ion-text color="medium" *ngIf="form().file">{{ form().file?.name }}</ion-text>
+        <div class="photo-preview" *ngIf="temporaryPhotos.length">
+          <img *ngFor="let photo of temporaryPhotos" [src]="photo" alt="Selected alert photo" />
+        </div>
       </div>
     </ion-item>
 

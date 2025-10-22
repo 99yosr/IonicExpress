@@ -38,7 +38,12 @@ export const routes: Routes = [
   },
   {
     path: 'MakeAlert',
-    // Alert creation map for standard users.
+    redirectTo: 'alerts/new',
+    pathMatch: 'full',
+  },
+  {
+    path: 'alerts/new',
+    // Standalone flow to submit a new alert.
     canActivate: [authGuard],
     loadComponent: () => import('./pages/alerts-gen/alerts-gen.page').then((m) => m.AlertsGenPage),
   },
@@ -52,9 +57,4 @@ export const routes: Routes = [
     path: '**',
     redirectTo: '',
   },
-  {
-    path: 'alerts-gen',
-    loadComponent: () => import('./pages/alerts-gen/alerts-gen.page').then( m => m.AlertsGenPage)
-  },
-
 ];
