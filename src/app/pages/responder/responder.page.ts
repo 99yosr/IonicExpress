@@ -172,28 +172,43 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
    * Attempts to accept an alert and updates the list accordingly.
    */
   async acceptAlert(alert: Alert): Promise<void> {
-    if (!this.online) {
-      this.presentToast('Go online before responding to alerts.', 'warning');
-      return;
-    }
-
-    this.acceptingId = alert._id;
-    try {
-      const updated = await this.alertsApi.accept(alert._id);
-      this.currentMission = updated;
-      this.alerts = [];
-      this.refreshMarkers();
-      this.drawRouteToAlert(updated);
-      this.processAlertUpdate(updated);
-      this.presentToast('Alert accepted. Navigate to the location!', 'success');
-    } catch (error: any) {
-      const message =
-        error?.error?.message || 'Could not accept this alert. It may already be taken.';
-      this.presentToast(message, 'danger');
-    } finally {
-      this.acceptingId = undefined;
-    }
+  if (!this.online) {
+    this.presentToast('Go online before responding to alerts.', 'warning');
+    return;
   }
+
+  this.acceptingId = alert._id;
+  try {
+    const updated = await this.alertsApi.accept(alert._id);
+    console.log('Accepted alert response:', updated);
+    this.currentMission = updated;
+
+
+    // 🟩 Remove all other alert markers, keep only this one
+    this.alerts = [updated];
+    this.alertMarkers.forEach((marker, id) => {
+      if (id !== updated._id) {
+        marker.remove();
+        this.alertMarkers.delete(id);
+      }
+    });
+
+    // 🟩 Ensure marker for the accepted alert remains (or re-create it)
+    this.addOrUpdateMarker(updated);
+
+    // Draw route after a short delay to ensure location is set
+    setTimeout(() => this.drawRouteToAlert(updated), 500);
+
+    this.presentToast('Alert accepted. Navigate to the location!', 'success');
+  } catch (error: any) {
+    const message =
+      error?.error?.message || 'Could not accept this alert. It may already be taken.';
+    this.presentToast(message, 'danger');
+  } finally {
+    this.acceptingId = undefined;
+  }
+}
+
 
   /**
    * Logs the responder out after notifying the backend that they are offline.
@@ -435,36 +450,39 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
 
   // Mission helpers
   private drawRouteToAlert(alert: Alert): void {
-    if (!this.map || !alert.location?.coordinates) return;
-    const [lng, lat] = alert.location.coordinates;
-    this.destLatLng = { lat, lng };
+  if (!this.map || !alert.location?.coordinates) return;
+  const [lng, lat] = alert.location.coordinates;
+  this.destLatLng = { lat, lng };
 
-    // Clear other markers
-    this.clearAlertMarkers();
+  // Destination marker
+  this.destinationMarker?.remove();
+  this.destinationMarker = L.marker([lat, lng]).addTo(this.map);
 
-    // Destination marker
-    this.destinationMarker?.remove();
-    this.destinationMarker = L.marker([lat, lng]).addTo(this.map);
-
-    // Build routing from current position to destination
-    const origin = this.responderMarker?.getLatLng();
-    if (!origin) return;
-
-    // Remove previous routing control if any
-    this.clearRoute();
-
-    this.routingControl = L.Routing.control({
-      waypoints: [L.latLng(origin.lat, origin.lng), L.latLng(lat, lng)],
-      addWaypoints: false,
-      draggableWaypoints: false,
-      fitSelectedRoutes: true,
-      routeWhileDragging: false,
-      show: false,
-      router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
-      lineOptions: { addWaypoints: false },
-      createMarker: () => null, // hide default waypoint markers
-    }).addTo(this.map);
+  // Build routing from current position to destination
+  const origin = this.responderMarker?.getLatLng();
+  if (!origin) {
+    console.warn('Responder marker not ready yet.');
+    return;
   }
+
+  // Remove previous routing control if any
+  this.clearRoute();
+
+  this.routingControl = L.Routing.control({
+    waypoints: [L.latLng(origin.lat, origin.lng), L.latLng(lat, lng)],
+    addWaypoints: false,
+    draggableWaypoints: false,
+    fitSelectedRoutes: true,
+    routeWhileDragging: false,
+    show: false,
+    router: L.Routing.osrmv1({
+      serviceUrl: 'https://router.project-osrm.org/route/v1'
+    }),
+    lineOptions: { addWaypoints: false },
+    createMarker: () => null,
+  }).addTo(this.map);
+}
+
 
   private clearRoute(): void {
     if (this.routingControl) {
