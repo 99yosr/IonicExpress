@@ -140,68 +140,29 @@ export class AlertsGenPage implements OnInit {
   }
 
   private async getCurrentLocation(): Promise<void> {
-    this.errorMsg = '';
+  this.errorMsg = '';
 
-    const secure =
-      location.protocol === 'https:' ||
-      location.hostname === 'localhost' ||
-      location.hostname === '127.0.0.1';
-    if (!secure) {
-      this.errorMsg = 'Run on https or localhost.';
+  try {
+    // Request permission if not already granted
+    const perm = await Geolocation.requestPermissions();
+    if (perm.location !== 'granted') {
+      this.errorMsg = 'Location permission not granted. Please enable GPS.';
       return;
     }
 
-    try {
-      const perm = (navigator as any).permissions
-        ? await (navigator as any).permissions.query({
-            name: 'geolocation' as PermissionName,
-          })
-        : { state: 'prompt' };
-      if (perm.state === 'denied') {
-        this.errorMsg =
-          'Chrome blocked location. Click the lock icon → Site settings → Location → Allow.';
-        return;
-      }
-    } catch {
-      // ignore permission probe failures
-    }
+    // Get the position
+    const pos = await Geolocation.getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+    });
 
-    try {
-      const pos = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: false,
-        timeout: 8000,
-        maximumAge: 60000,
-      });
-      this.setCoords(pos.coords.latitude, pos.coords.longitude);
-      return;
-    } catch {
-      // fall through to watch fallback
-    }
-
-    if ('geolocation' in navigator) {
-      await new Promise<void>((resolve, reject) => {
-        const id = navigator.geolocation.watchPosition(
-          (p) => {
-            navigator.geolocation.clearWatch(id);
-            this.setCoords(p.coords.latitude, p.coords.longitude);
-            resolve();
-          },
-          (error) => {
-            navigator.geolocation.clearWatch(id);
-            reject(error);
-          },
-          { enableHighAccuracy: false, maximumAge: 0 }
-        );
-        setTimeout(() => {
-          navigator.geolocation.clearWatch(id);
-          reject(new Error('timeout'));
-        }, 10000);
-      }).catch(() => {
-        this.errorMsg =
-          'Enable Location for localhost:<port> in Chrome, then reload.';
-      });
-    }
+    this.setCoords(pos.coords.latitude, pos.coords.longitude);
+    console.log('📍 Got location:', pos.coords);
+  } catch (err: any) {
+    console.error('Geolocation error:', err);
+    this.errorMsg = 'Could not get current location. Check GPS and permissions.';
   }
+}
 
   private setCoords(lat: number, lng: number): void {
     this.form.update((prev) => ({ ...prev, lat, lng }));

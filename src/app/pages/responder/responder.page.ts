@@ -45,6 +45,7 @@ import { Share } from '@capacitor/share';
 
 import { addIcons } from 'ionicons';
 import { logOutOutline, location, navigate, checkmark, close, notificationsOffOutline } from 'ionicons/icons';
+import { NotificationType, Haptics } from '@capacitor/haptics';
 declare const L: any;
 
 @Component({
@@ -76,10 +77,6 @@ declare const L: any;
   ],
   providers: [ModalController]
 })
-/**
- * Real-time dashboard for responders. Displays pending alerts on a Leaflet map,
- * allows responders to come online/offline, and keep their location synchronized.
- */
 export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('mapRef', { static: false }) mapContainer?: ElementRef<HTMLDivElement>;
 
@@ -88,7 +85,7 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   acceptingId?: string;
   online = false;
 
-    // Mission state
+  // Mission state
   currentMission: Alert | null = null;
   activeMission: MissionRecord | null = null;
   missionBusy = false;
@@ -105,16 +102,16 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly toastCtrl = inject(ToastController);
   private readonly socket = inject(SocketService);
   private readonly modalCtrl = inject(ModalController)
+
   private map?: any;
   private alertMarkers = new Map<string, any>();
   private responderMarker?: any;
   private locationWatchId?: string;
 
-// Routing
+  // Routing
   private routingControl?: any;
   private destinationMarker?: any;
   private destLatLng?: { lat: number; lng: number };
-
 
   /**
    * Socket listeners convert raw payloads into typed alerts.
@@ -129,7 +126,6 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   };
 
   constructor() {
-    // Add the icons you're using
     addIcons({ 
       logOutOutline, 
       location, 
@@ -140,9 +136,6 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  /**
-   * Establishes socket listeners when the component is created.
-   */
   ngOnInit(): void {
     this.socket.connect();
     this.socket.on('newAlert', this.handleNewAlert);
@@ -150,33 +143,23 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
     this.socket.on('alerts:updated', this.handleUpdatedAlert);
   }
 
-  /**
-   * After Ionic renders the view we can render the map, load alerts, and try to go online.
-   */
-private fixMapPosition(): void {
-  // Force the map to take full height and position properly
-  setTimeout(() => {
-    if (this.map) {
-      this.map.invalidateSize();
-      
-      // Reset the map view to ensure it's properly positioned
-      const currentCenter = this.map.getCenter();
-      this.map.setView(currentCenter, this.map.getZoom());
-    }
-  }, 500);
-}
+  private fixMapPosition(): void {
+    setTimeout(() => {
+      if (this.map) {
+        this.map.invalidateSize();
+        const currentCenter = this.map.getCenter();
+        this.map.setView(currentCenter, this.map.getZoom());
+      }
+    }, 500);
+  }
 
-// Call this in ngAfterViewInit
-async ngAfterViewInit(): Promise<void> {
-  await this.initMap();
-  await this.loadAlerts();
-  await this.goOnline();
-  this.fixMapPosition();
-}
+  async ngAfterViewInit(): Promise<void> {
+    await this.initMap();
+    await this.loadAlerts();
+    await this.goOnline();
+    this.fixMapPosition();
+  }
 
-  /**
-   * Removes listeners, stops geolocation and tears down Leaflet when leaving the page.
-   */
   ngOnDestroy(): void {
     this.socket.off('newAlert', this.handleNewAlert);
     this.socket.off('alerts:new', this.handleBroadcastAlert);
@@ -192,9 +175,6 @@ async ngAfterViewInit(): Promise<void> {
     this.map?.remove();
   }
 
-  /**
-   * Called when the online toggle changes. It avoids duplicate transitions.
-   */
   async toggleOnline(event: ToggleCustomEvent): Promise<void> {
     const { checked } = event.detail;
     if (checked === this.online) {
@@ -207,9 +187,6 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-  /**
-   * Attempts to accept an alert and updates the list accordingly.
-   */
   async acceptAlert(alert: Alert): Promise<void> {
     if (!this.online) {
       this.presentToast('Go online before responding to alerts.', 'warning');
@@ -244,19 +221,12 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-
-  /**
-   * Logs the responder out after notifying the backend that they are offline.
-   */
-  async logout(): Promise<void> {
-    await this.goOffline(false);
+  
+    logout(): void {
     this.auth.logout();
     this.router.navigateByUrl('/auth/login', { replaceUrl: true });
   }
 
-  /**
-   * Gets the current position, registers the responder on the socket and starts tracking.
-   */
   private async goOnline(): Promise<void> {
     if (this.online) {
       return;
@@ -288,9 +258,6 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-  /**
-   * Stops location tracking, removes the local marker and optionally shows a toast.
-   */
   private async goOffline(showToast = true): Promise<void> {
     if (!this.online) {
       return;
@@ -306,16 +273,10 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-  /**
-   * Signals to the backend that the responder should be considered offline.
-   */
   private emitOffline(): void {
     this.socket.emit('responderOffline', {});
   }
 
-  /**
-   * Starts a high-accuracy location watch so the responder icon follows the device.
-   */
   private startLocationWatch(userId: string): void {
     if (this.locationWatchId) {
       return;
@@ -342,9 +303,6 @@ async ngAfterViewInit(): Promise<void> {
     ) as unknown as string;
   }
 
-  /**
-   * Stops the geolocation watch when the responder goes offline or leaves the page.
-   */
   private async stopLocationWatch(): Promise<void> {
     if (this.locationWatchId) {
       await Geolocation.clearWatch({ id: this.locationWatchId });
@@ -352,9 +310,6 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-  /**
-   * Initializes the Leaflet map once the view has rendered.
-   */
   private async initMap(): Promise<void> {
     if (this.map || !this.mapContainer) {
       return;
@@ -377,9 +332,6 @@ async ngAfterViewInit(): Promise<void> {
     setTimeout(() => this.map?.invalidateSize(), 200);
   }
 
-  /**
-   * Loads pending alerts for responders and draws the markers.
-   */
   private async loadAlerts(): Promise<void> {
     this.loadingAlerts = true;
     try {
@@ -393,9 +345,6 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-  /**
-   * Clears existing markers and redraws them based on the latest alert array.
-   */
   private refreshMarkers(): void {
     if (!this.map) {
       return;
@@ -405,9 +354,6 @@ async ngAfterViewInit(): Promise<void> {
     this.alerts.forEach((alert) => this.addOrUpdateMarker(alert));
   }
 
-  /**
-   * Ensures that each alert has an associated marker positioned at its coordinates.
-   */
   private addOrUpdateMarker(alert: Alert): void {
     if (!this.map || !alert.location?.coordinates) {
       return;
@@ -436,18 +382,12 @@ async ngAfterViewInit(): Promise<void> {
     this.alertMarkers.set(alert._id, marker);
   }
 
-  /**
-   * Generates the message shown inside a marker popup.
-   */
   private markerPopupContent(alert: Alert): string {
     const injured =
       alert.numInjured != null ? `<br/>Injured: ${alert.numInjured}` : '';
     return `<strong>${alert.type}</strong><br/>${alert.description}${injured}`;
   }
 
-  /**
-   * Creates or updates the green circle that represents the responder.
-   */
   private updateResponderLocation(lat: number, lng: number): void {
     if (!this.map || Number.isNaN(lat) || Number.isNaN(lng)) {
       return;
@@ -466,9 +406,6 @@ async ngAfterViewInit(): Promise<void> {
     this.map.setView([lat, lng], Math.max(this.map.getZoom(), 13));
   }
 
-  /**
-   * Zooms the map so the responder can see the full cluster of pending alerts.
-   */
   private fitMapToAlerts(): void {
     if (!this.map || !this.alerts.length || typeof L === 'undefined') {
       return;
@@ -518,7 +455,6 @@ async ngAfterViewInit(): Promise<void> {
   }).addTo(this.map);
 }
 
-
   private clearRoute(): void {
     if (this.routingControl) {
       try { this.routingControl.remove(); } catch {}
@@ -530,13 +466,12 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-
   // Mission actions
   async cancelMission(): Promise<void> {
     if (!this.currentMission) return;
     this.missionBusy = true;
     try {
-      await this.alertsApi.reopen(this.currentMission._id); // server puts it back to pending
+      await this.alertsApi.reopen(this.currentMission._id);
       this.presentToast('Mission cancelled. Alert reopened.', 'medium');
       this.currentMission = null;
       this.activeMission = null;
@@ -549,11 +484,9 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-
   closeComplete(): void {
     this.completeOpen = false;
   }
-
 
   async submitComplete(): Promise<void> {
     if (!this.currentMission) return;
@@ -567,14 +500,18 @@ async ngAfterViewInit(): Promise<void> {
       };
       const result = await this.alertsApi.complete(this.currentMission._id, payload);
       this.presentToast(result?.message ?? 'Mission completed.', 'success');
-       await this.exportMissionPdf(mission, payload);
+      
+      // Export PDF after successful completion
+      await this.exportMissionPdf(mission, payload);
+      
       this.completeOpen = false;
       this.currentMission = null;
       this.activeMission = null;
       this.clearRoute();
       await this.loadAlerts();
-    } catch {
-      this.presentToast('Could not save report.', 'danger');
+    } catch (error: any) {
+      console.error('Completion error:', error);
+      this.presentToast(error?.message || 'Could not save report.', 'danger');
     } finally {
       this.missionBusy = false;
     }
@@ -586,12 +523,159 @@ async ngAfterViewInit(): Promise<void> {
     window.open(url, '_blank');
   }
 
+  // PDF Export Logic - MOVED TO RESPONDER PAGE
+  private async exportMissionPdf(
+    mission: Alert,
+    report: {
+      outcome: string;
+      notes?: string;
+      numInjured?: number | null;
+    }
+  ): Promise<void> {
+    try {
+      console.log('Starting PDF export for mission:', mission._id);
+      
+      const doc = new jsPDF();
+      
+      // Set document properties
+      doc.setProperties({
+        title: `Mission Report - ${mission._id}`,
+        subject: `Mission Report for ${mission.type}`,
+        creator: 'Emergency Response App',
+      });
 
+      // Add content
+      const lines = [
+        'MISSION REPORT',
+        '',
+        `Alert ID: ${mission._id}`,
+        `Alert Type: ${mission.type.toUpperCase()}`,
+        `Description: ${mission.description}`,
+        `Date Created: ${new Date(mission.createdAt).toLocaleString()}`,
+        mission.numInjured != null ? `Reported Injuries: ${mission.numInjured}` : '',
+        '',
+        'RESPONSE OUTCOME',
+        `Status: ${this.formatOutcome(report.outcome)}`,
+        report.numInjured != null ? `Confirmed Injuries: ${report.numInjured}` : '',
+        `Responder Notes: ${report.notes ?? 'No additional notes'}`,
+        '',
+        `Report Generated: ${new Date().toLocaleString()}`,
+      ].filter(Boolean);
 
+      // Title
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('MISSION REPORT', 14, 22);
+      
+      // Content
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      let y = 35;
+      
+      lines.forEach((line, index) => {
+        if (index === 8) { // Before "RESPONSE OUTCOME"
+          y += 8;
+          doc.setFont('helvetica', 'bold');
+        } else if (index > 0 && index !== 8) {
+          doc.setFont('helvetica', 'normal');
+        }
+        
+        // Handle long text by splitting into multiple lines
+        const splitLines = doc.splitTextToSize(line, 180);
+        splitLines.forEach((textLine: string) => {
+          if (y > 270) { // Add new page if needed
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(textLine, 14, y);
+          y += 6;
+        });
+      });
 
-  /**
-   * Parses incoming socket payloads and updates the collection of alerts.
-   */
+      // Add a border
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(10, 10, 190, 277);
+
+      // Handle platform-specific saving
+      if (this.isWeb()) {
+        doc.save(`mission_report_${mission._id}.pdf`);
+        this.presentToast('PDF downloaded successfully', 'success');
+        console.log('PDF downloaded successfully');
+      } else {
+        // For mobile devices
+        const pdfOutput = doc.output('datauristring');
+        const base64 = pdfOutput.split(',')[1];
+        const filename = `mission_report_${mission._id}_${Date.now()}.pdf`;
+
+        console.log('Writing PDF to filesystem...');
+        
+        // Write to filesystem
+        await Filesystem.writeFile({
+          path: filename,
+          data: base64,
+          directory: Directory.Documents,
+          recursive: true
+        });
+
+        // Get the file URI
+        const { uri } = await Filesystem.getUri({
+          path: filename,
+          directory: Directory.Documents,
+        });
+
+        console.log('PDF saved to:', uri);
+
+        // Share the file
+        await Share.share({
+          title: 'Mission Report',
+          text: `Mission report for ${mission.type} alert`,
+          url: uri,
+          dialogTitle: 'Share Mission Report',
+        });
+
+        this.presentToast('PDF saved and ready to share', 'success');
+        console.log('PDF shared successfully');
+      }
+    } catch (error) {
+      console.error('PDF export error:', error);
+      this.presentToast('PDF export failed, but report was saved', 'warning');
+    }
+  }
+
+  // Helper to format outcome for display
+  private formatOutcome(outcome: string): string {
+    const outcomes: Record<string, string> = {
+      resolved: 'Resolved',
+      not_found: 'Not Found / Could Not Reach',
+      false_alarm: 'False Alarm',
+      other: 'Other'
+    };
+    return outcomes[outcome] || outcome;
+  }
+
+  private isWeb(): boolean {
+    return !(window as any).Capacitor?.isNativePlatform;
+  }
+
+  async openComplete() {
+    const modal = await this.modalCtrl.create({
+      component: CompleteReportModal, 
+      componentProps: { 
+        initial: this.missionReport
+        // Note: We're NOT passing mission to modal anymore
+      },
+      canDismiss: true,
+    });
+    
+    const { data, role } = await (await modal.present(), modal.onWillDismiss());
+    if (role === 'save') {
+      this.missionReport = data;
+      // PDF export will happen in submitComplete after API call
+      this.submitComplete();
+    }
+  }
+
+  // Rest of your existing methods...
   private handleIncomingAlert(data: unknown, notify: boolean): void {
     const alert = this.toAlert(data);
     if (alert) {
@@ -599,10 +683,6 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-  /**
-   * Inserts or replaces alerts in the local array and keeps markers in sync.
-   */
- 
   private upsertAlert(alert: Alert, notify: boolean): void {
     if (alert.status !== 'pending') {
       if (this.currentMission && this.currentMission._id === alert._id) {
@@ -613,7 +693,7 @@ async ngAfterViewInit(): Promise<void> {
       return;
     }
     if (this.currentMission) {
-      return; // ignore list updates while on a mission
+      return;
     }
     const index = this.alerts.findIndex((a) => a._id === alert._id);
     if (index >= 0) {
@@ -627,10 +707,6 @@ async ngAfterViewInit(): Promise<void> {
     this.addOrUpdateMarker(alert);
   }
 
-
-  /**
-   * Handles socket updates for accepted/resolved alerts.
-   */
   private processAlertUpdate(alert: Alert): void {
     if (this.currentMission && this.currentMission._id === alert._id) {
       if (alert.status === 'resolved') {
@@ -654,9 +730,6 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-  /**
-   * Removes an alert and its marker from the local state.
-   */
   private removeAlert(id: string): void {
     const before = this.alerts.length;
     this.alerts = this.alerts.filter((alert) => alert._id !== id);
@@ -670,17 +743,11 @@ async ngAfterViewInit(): Promise<void> {
     }
   }
 
-  /**
-   * Clears every pending marker from the map.
-   */
   private clearAlertMarkers(): void {
     this.alertMarkers.forEach((marker) => marker.remove());
     this.alertMarkers.clear();
   }
 
-  /**
-   * Convenience wrapper for presenting toasts with consistent config.
-   */
   private async presentToast(
     message: string,
     color: 'success' | 'warning' | 'danger' | 'tertiary' | 'medium'
@@ -691,11 +758,9 @@ async ngAfterViewInit(): Promise<void> {
       color,
     });
     toast.present();
+    Haptics.notification({ type: NotificationType.Warning });
   }
 
-  /**
-   * Type guard that validates socket payloads before the rest of the code consumes them.
-   */
   private toAlert(data: unknown): Alert | null {
     if (!data || typeof data !== 'object') {
       return null;
@@ -711,102 +776,4 @@ async ngAfterViewInit(): Promise<void> {
     }
     return null;
   }
-
-  async openComplete() {
-  const modal = await this.modalCtrl.create({
-    component: CompleteReportModal, 
-    componentProps: { initial: this.missionReport },
-    canDismiss: true,
-  });
-  const { data, role } = await (await modal.present(), modal.onWillDismiss());
-  if (role === 'save') {
-    this.missionReport = data;
-    this.submitComplete();
-  }
-}
-
-
-
-
-private async exportMissionPdf(mission: Alert, report: {
-  outcome: 'resolved'|'not_found'|'false_alarm'|'other';
-  notes?: string;
-  numInjured?: number;
-}) {
-  const doc = new jsPDF();
-  const lines = [
-    'Mission Report',
-    '',
-    `ID: ${mission._id}`,
-    `Type: ${mission.type}`,
-    `Description: ${mission.description}`,
-    `Created: ${new Date(mission.createdAt).toLocaleString()}`,
-    mission.numInjured != null ? `Injured (alert): ${mission.numInjured}` : '',
-    '',
-    `Outcome: ${report.outcome}`,
-    report.numInjured != null ? `Injured (final): ${report.numInjured}` : '',
-    `Notes: ${report.notes ?? ''}`,
-  ].filter(Boolean);
-
-  doc.setFontSize(16);
-  doc.text(lines[0], 14, 18);
-  doc.setFontSize(11);
-  let y = 28;
-  for (let i = 1; i < lines.length; i++) {
-    y += 6;
-    doc.text(lines[i], 14, y);
-  }
-
-
-  if (this.isWeb()) {
-    doc.save(`mission_${mission._id}.pdf`);
-    await this.presentToast('PDF downloaded.', 'success');
-    return;
-  }
-
-  const base64 = doc.output('datauristring').split(',')[1];
-  const filename = `mission_${mission._id}_${Date.now()}.pdf`;
-
-  await Filesystem.writeFile({
-    path: filename,
-    data: base64,
-    directory: Directory.Documents,
-  });
-
-  const { uri } = await Filesystem.getUri({
-    path: filename,
-    directory: Directory.Documents,
-  });
-
-  await Share.share({
-    title: 'Mission report',
-    text: 'PDF saved. Share or move to Downloads.',
-    url: uri,
-  });
-
-  await this.presentToast('PDF saved to Documents.', 'success');
-}
-
-private isWeb(): boolean {
-  return !(window as any).Capacitor?.isNativePlatform;
-}
-/**
- * Ensures proper z-index hierarchy when elements might overlap
- */
-private ensureZIndexHierarchy(): void {
-  // Force header and toolbar to be solid
-  const header = document.querySelector('ion-header');
-  const toolbar = document.querySelector('ion-toolbar');
-  
-  if (header) {
-    (header as HTMLElement).style.backgroundColor = 'var(--primary-color)';
-  }
-  
-  if (toolbar) {
-    (toolbar as HTMLElement).style.backgroundColor = 'var(--primary-color)';
-    (toolbar as HTMLElement).style.setProperty('--background', 'var(--primary-color)', 'important');
-  }
-}
-
-
 }

@@ -13,13 +13,18 @@ import {
   IonText,
   IonTitle,
   IonToolbar,
+  IonIcon
 } from '@ionic/angular/standalone';
+
 import { AuthService, UserRole } from '../../services/auth.service';
+import { addIcons } from 'ionicons';
+import { warning, alertCircle, personAdd } from 'ionicons/icons';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   templateUrl: './login.page.html',
+  styleUrls: ['./login.page.scss'],
   imports: [
     IonHeader,
     IonToolbar,
@@ -34,6 +39,7 @@ import { AuthService, UserRole } from '../../services/auth.service';
     IonInput,
     IonText,
     IonSpinner,
+    IonIcon
   ],
 })
 /**
@@ -50,6 +56,10 @@ export class LoginPage implements OnInit {
   });
   errorMessage?: string;
   loading = false;
+
+  constructor() {
+  addIcons({ warning, alertCircle, personAdd});
+}
 
   /**
    * If a profile is already cached, skip the form entirely.

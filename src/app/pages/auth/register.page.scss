@@ -1,0 +1,344 @@
+// Register Page Styles - Red Theme
+:host {
+  --primary-color: #c9334c;
+  --primary-light: #e8a0ac;
+  --primary-dark: #a3293d;
+  --danger-color: #eb445a;
+  --light-color: #f8f9fa;
+  --medium-color: #6c757d;
+  --dark-color: #343a40;
+}
+
+// Content Styles
+ion-content {
+  --background: linear-gradient(135deg, #fff5f7 0%, #ffeef1 50%, #f8d7da 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  
+  .register-container {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+  }
+}
+
+// Form Styles
+form {
+  background: white;
+  border-radius: 24px;
+  padding: 40px 32px;
+  box-shadow: 0 10px 40px rgba(201, 51, 76, 0.15);
+  margin-bottom: 24px;
+  border: 1px solid rgba(201, 51, 76, 0.1);
+  
+  .form-header {
+    text-align: center;
+    margin-bottom: 32px;
+    
+    h2 {
+      font-weight: 700;
+      font-size: 2rem;
+      color: var(--dark-color);
+      margin: 0 0 8px 0;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    p {
+      color: var(--medium-color);
+      font-size: 1rem;
+      margin: 0;
+      font-weight: 500;
+    }
+  }
+  
+  ion-list {
+    background: transparent;
+    margin-bottom: 8px;
+    
+    ion-item {
+      --background: transparent;
+      --padding-start: 0;
+      --inner-padding-end: 0;
+      --border-color: #e9ecef;
+      --min-height: 68px;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+      
+      &:focus-within {
+        --border-color: var(--primary-color);
+        --background: rgba(201, 51, 76, 0.03);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(201, 51, 76, 0.1);
+      }
+      
+      ion-label {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--dark-color);
+        margin-bottom: 8px;
+        transform: none;
+        
+        &[position="stacked"] {
+          transform: translateY(0) scale(1);
+          margin-bottom: 8px;
+        }
+      }
+      
+      ion-input, ion-select {
+        --padding-start: 20px;
+        --padding-end: 20px;
+        --padding-top: 16px;
+        --padding-bottom: 16px;
+        font-size: 1.1rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        min-height: 52px;
+        transition: all 0.3s ease;
+        
+        &:focus {
+          box-shadow: 0 0 0 3px rgba(201, 51, 76, 0.1);
+        }
+        
+        &.ion-valid {
+          --background: rgba(45, 211, 111, 0.05);
+        }
+        
+        &.ion-invalid {
+          --background: rgba(201, 51, 76, 0.05);
+        }
+      }
+      
+      ion-select::part(icon) {
+        color: var(--primary-color);
+        opacity: 1;
+      }
+      
+      ion-select::part(text) {
+        color: var(--dark-color);
+      }
+      
+      ion-select::part(placeholder) {
+        color: var(--medium-color);
+      }
+    }
+  }
+}
+
+// Error Messages
+ion-text[color="danger"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  margin: -12px 0 16px 0;
+  padding: 12px 16px;
+  background: rgba(201, 51, 76, 0.08);
+  border-radius: 10px;
+  border-left: 4px solid var(--primary-color);
+  font-weight: 500;
+  
+  ion-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+}
+
+// Submit Button
+ion-button[type="submit"] {
+  --border-radius: 16px;
+  --box-shadow: 0 6px 20px rgba(201, 51, 76, 0.4);
+  --background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  --background-hover: linear-gradient(135deg, var(--primary-dark) 0%, #8c2435 100%);
+  --background-activated: linear-gradient(135deg, var(--primary-dark) 0%, #8c2435 100%);
+  min-height: 56px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-top: 24px;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    --box-shadow: 0 8px 25px rgba(201, 51, 76, 0.5);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  &[disabled] {
+    --background: var(--medium-color);
+    --box-shadow: none;
+    opacity: 0.6;
+    transform: none;
+  }
+  
+  ion-spinner {
+    --color: white;
+    margin-right: 12px;
+  }
+}
+
+// Login Link
+ion-button[fill="clear"] {
+  --color: var(--primary-color);
+  --background-hover: rgba(201, 51, 76, 0.1);
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 8px;
+  
+  &::part(native) {
+    padding: 16px;
+    border-radius: 12px;
+  }
+  
+  ion-icon {
+    font-size: 1.2rem;
+    margin-right: 8px;
+  }
+}
+
+// Role Select Styling
+.role-select {
+  ion-select {
+    --padding-end: 20px;
+  }
+  
+  ion-select-option {
+    --color: var(--dark-color);
+    --background-hover: rgba(201, 51, 76, 0.1);
+  }
+}
+
+// Loading state
+.form-loading {
+  opacity: 0.8;
+  pointer-events: none;
+  
+  ion-item {
+    opacity: 0.7;
+  }
+}
+
+// Enhanced error states
+ion-item.ion-invalid {
+  --border-color: var(--primary-color);
+  animation: gentleShake 0.5s ease-in-out;
+}
+
+@keyframes gentleShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+// Password strength indicator
+.password-strength {
+  margin: -8px 0 16px 0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  
+  &.weak {
+    background: rgba(201, 51, 76, 0.1);
+    color: var(--primary-color);
+    border-left: 4px solid var(--primary-color);
+  }
+  
+  &.medium {
+    background: rgba(255, 196, 9, 0.1);
+    color: var(--warning-color);
+    border-left: 4px solid var(--warning-color);
+  }
+  
+  &.strong {
+    background: rgba(45, 211, 111, 0.1);
+    color: var(--success-color);
+    border-left: 4px solid var(--success-color);
+  }
+}
+
+// Responsive adjustments
+@media (max-height: 700px) {
+  ion-content {
+    --padding-top: 20px;
+    --padding-bottom: 20px;
+  }
+  
+  form {
+    padding: 32px 24px;
+  }
+  
+  .form-header {
+    margin-bottom: 24px;
+    
+    h2 {
+      font-size: 1.8rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .register-container {
+    padding: 16px;
+  }
+  
+  form {
+    padding: 32px 24px;
+    border-radius: 20px;
+  }
+}
+
+// Custom focus styles for better accessibility
+ion-input:focus-within,
+ion-select:focus-within {
+  --background: rgba(201, 51, 76, 0.05);
+}
+
+// Smooth transitions for all interactive elements
+ion-item, ion-button, ion-input, ion-select {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// Success animation
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.form-success {
+  animation: successPulse 0.5s ease-in-out;
+}
+
+// Decorative elements
+.register-container::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(201, 51, 76, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.register-container::after {
+  content: '';
+  position: absolute;
+  bottom: -50px;
+  left: -50px;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(201, 51, 76, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+}

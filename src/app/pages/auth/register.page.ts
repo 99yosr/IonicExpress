@@ -15,13 +15,17 @@ import {
   IonText,
   IonTitle,
   IonToolbar,
+  IonIcon
 } from '@ionic/angular/standalone';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { addIcons } from 'ionicons';
+import { alertCircle, warning, logIn, person, medical } from 'ionicons/icons';
 
 @Component({
   selector: 'app-register',
   standalone: true,
   templateUrl: './register.page.html',
+  styleUrls:['./register.page.scss'],
   imports: [
     IonHeader,
     IonToolbar,
@@ -38,6 +42,7 @@ import { AuthService, UserRole } from '../../services/auth.service';
     IonSelect,
     IonSelectOption,
     IonSpinner,
+    IonIcon
   ],
 })
 /**
@@ -58,6 +63,9 @@ export class RegisterPage {
   });
   errorMessage?: string;
   loading = false;
+  constructor() {
+  addIcons({ alertCircle, warning, logIn, person, medical });
+}
 
   /**
    * Template helper used to show the validation hint for the name field.

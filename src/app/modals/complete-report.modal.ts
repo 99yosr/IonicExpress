@@ -1,6 +1,5 @@
-// src/app/modals/complete-report.modal.ts
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import {
   IonHeader,
   IonToolbar,
@@ -111,8 +110,7 @@ export class CompleteReportModal {
       this.report = {
         outcome: this.initial.outcome ?? 'resolved',
         notes: this.initial.notes ?? '',
-        numInjured:
-          this.initial.numInjured === undefined ? null : this.initial.numInjured,
+        numInjured: this.initial.numInjured === undefined ? null : this.initial.numInjured,
       };
     }
   }
@@ -121,18 +119,20 @@ export class CompleteReportModal {
     this.modalCtrl.dismiss(null, 'cancel');
   }
 
-  save(): void {
+  async save(): Promise<void> {
     const cleaned: MissionReport = {
       outcome: this.report.outcome,
       notes: this.report.notes?.trim() || undefined,
-      numInjured:
-        this.report.numInjured === null || this.report.numInjured === undefined
-          ? undefined
-          : Number(this.report.numInjured),
+      numInjured: this.report.numInjured === null || this.report.numInjured === undefined
+        ? undefined
+        : Number(this.report.numInjured),
     };
+    
     if (Number.isNaN(cleaned.numInjured as number)) {
       cleaned.numInjured = undefined;
     }
+
+    // Just return the data - PDF export happens in responder page
     this.modalCtrl.dismiss(cleaned, 'save');
   }
 }
