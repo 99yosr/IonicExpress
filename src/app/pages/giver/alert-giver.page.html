@@ -1,8 +1,8 @@
 <ion-header translucent="true">
   <ion-toolbar>
-    <ion-title>Active alerts</ion-title>
+    <ion-title>Active Alerts</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="logout()">Logout</ion-button>
+      <ion-button (click)="logout()"><ion-icon slot="icon-only" name="log-out-outline"></ion-icon></ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -18,132 +18,73 @@
     @if (loadingAlerts) {
       <div class="loading-overlay">
         <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading alerts...</p>
       </div>
     }
 
     @if (alerts.length) {
       <div class="alerts-sheet">
-        <h2>Alerts nearby</h2>
-        <ion-list lines="none">
+        <div class="sheet-header">
+          <h2>Alerts Nearby</h2>
+          <ion-badge color="primary" class="alert-count">{{ alerts.length }}</ion-badge>
+        </div>
+        <ion-list lines="none" class="alerts-list">
           @for (alert of alerts; track alert._id) {
-            <ion-item>
-              <ion-label>
-                <h3>{{ alert.type }}</h3>
-                <p>{{ alert.description }}</p>
-                <p class="meta">
-                  Status: {{ alert.status === 'accepted' ? 'Help on the way' : alert.status | titlecase }} ·
-                  {{ alert.createdAt | date: 'short' }}
-                </p>
+            <ion-item class="alert-item" [class.alert-item--accepted]="alert.status === 'accepted'">
+              <div class="alert-indicator" [class]="'alert-indicator--' + alert.type"></div>
+              <ion-label class="alert-content">
+                <h3 class="alert-type">{{ alert.type | titlecase }}</h3>
+                <p class="alert-description">{{ alert.description }}</p>
+                <div class="alert-meta">
+                  <ion-chip class="status-chip" [color]="getStatusColor(alert.status)">
+                    <ion-icon name="time" class="chip-icon"></ion-icon>
+                    <ion-label>{{ alert.status === 'accepted' ? 'Help on the way' : alert.status | titlecase }}</ion-label>
+                  </ion-chip>
+                  <span class="alert-time">{{ alert.createdAt | date: 'shortTime' }}</span>
+                </div>
+                @if (alert.numInjured && alert.numInjured > 0) {
+                  <div class="injury-badge">
+                    <ion-icon name="medkit-outline"></ion-icon>
+                    <span>{{ alert.numInjured }} injured</span>
+                  </div>
+                }
               </ion-label>
+              <ion-button
+                class="action-button"
+                fill="clear"
+                size="small"
+                (click)="viewAlertDetails(alert)"
+              >
+                <ion-icon name="chevron-forward" slot="icon-only"></ion-icon>
+              </ion-button>
             </ion-item>
           }
         </ion-list>
+      </div>
+    } @else if (!loadingAlerts) {
+      <div class="empty-state">
+        <div class="empty-icon">
+          <ion-icon name="notifications-off-outline"></ion-icon>
+        </div>
+        <h3>No Active Alerts</h3>
+        <p>There are no alerts in your area right now.</p>
+        <ion-button fill="outline" (click)="refresh()">
+          <ion-icon name="refresh" slot="start"></ion-icon>
+          Refresh
+        </ion-button>
       </div>
     }
   </div>
 
   <ion-fab
-    vertical="bottom"
-    horizontal="end"
-    slot="fixed"
+
     class="alerts-fab"
-    [class.alerts-fab--raised]="alerts.length"
   >
-    <ion-fab-button color="danger" (click)="launchAlert()">
-      <span class="fab-label">Launch alert</span>
+    <ion-fab-button color="danger" (click)="launchAlert()" class="alert-fab-button">
+      <ion-icon name="warning" class="fab-icon"></ion-icon>
+      <span class="fab-label">Alert</span>
     </ion-fab-button>
   </ion-fab>
 
-  <ion-modal
-    [isOpen]="createModalOpen"
-    [backdropDismiss]="!createLoading"
-    (willDismiss)="onModalDismiss()"
-  >
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Send alert</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="closeCreateModal()" [disabled]="createLoading">Close</ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content class="ion-padding">
-      <form [formGroup]="createForm" (ngSubmit)="submitAlert()" novalidate>
-        <ion-list lines="inset">
-          <ion-item>
-            <ion-label position="stacked">Type</ion-label>
-            <ion-select formControlName="type" interface="popover">
-              <ion-select-option value="medical">Medical</ion-select-option>
-              <ion-select-option value="fire">Fire</ion-select-option>
-              <ion-select-option value="accident">Accident</ion-select-option>
-              <ion-select-option value="other">Other</ion-select-option>
-            </ion-select>
-          </ion-item>
-
-          <ion-item>
-            <ion-label position="stacked">Description</ion-label>
-            <ion-textarea
-              formControlName="description"
-              rows="4"
-              autoGrow="true"
-              placeholder="Describe the situation..."
-              required
-            ></ion-textarea>
-          </ion-item>
-          @if (
-            createForm.controls.description.invalid &&
-            (createForm.controls.description.dirty ||
-              createForm.controls.description.touched)
-          ) {
-            <ion-text color="danger">
-              Please include a brief description.
-            </ion-text>
-          }
-
-          <ion-item>
-            <ion-label position="stacked">Number injured (optional)</ion-label>
-            <ion-input type="number" formControlName="numInjured" min="0"></ion-input>
-          </ion-item>
-        </ion-list>
-
-        <div class="photo-block">
-          <ion-button type="button" expand="block" fill="outline" (click)="selectPhoto()" [disabled]="createLoading">
-            <ion-icon name="camera" slot="start"></ion-icon>
-            Add photo
-          </ion-button>
-          @if (photoPreview) {
-            <img [src]="photoPreview" alt="Alert photo preview" class="photo-preview" />
-          }
-          @if (photoPreview) {
-            <ion-button
-              type="button"
-              fill="clear"
-              size="small"
-              color="medium"
-              (click)="clearPhoto()"
-            >
-              Remove photo
-            </ion-button>
-          }
-        </div>
-
-        @if (createError) {
-          <ion-text color="danger">{{ createError }}</ion-text>
-        }
-
-        <ion-button
-          type="submit"
-          expand="block"
-          class="ion-margin-top"
-          [disabled]="createForm.invalid || createLoading"
-        >
-          @if (createLoading) {
-            <ion-spinner slot="start"></ion-spinner>
-          }
-          Send alert
-        </ion-button>
-      </form>
-    </ion-content>
-  </ion-modal>
+  
 </ion-content>

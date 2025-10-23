@@ -1,24 +1,478 @@
+// Emergency Report Form Styles
+:host {
+  --primary-color: #3880ff;
+  --success-color: #2dd36f;
+  --warning-color: #ffc409;
+  --danger-color: #eb445a;
+  --light-color: #f4f5f8;
+  --medium-color: #92949c;
+  --dark-color: #222428;
+}
+
+ion-header {
+  background: linear-gradient(135deg, var(--danger-color) 0%, #c9334c 100%);
+  
+  ion-toolbar {
+    --background: transparent;
+    --color: white;
+    padding-top: var(--ion-safe-area-top, 20px);
+    
+    ion-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+    
+    ion-button {
+      --color: white;
+      --background-hover: rgba(255, 255, 255, 0.1);
+      font-weight: 500;
+      min-height: 44px;
+    }
+  }
+}
+
+
+ion-content {
+  --background: #f8f9fa;
+  
+  form {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+// Form Items Styling
+ion-item {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  --background: transparent;
+  margin-bottom: 24px;
+  
+  ion-label {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--dark-color);
+    margin-bottom: 8px;
+    
+    &[position="stacked"] {
+      transform: none !important;
+      margin-bottom: 8px;
+    }
+  }
+  
+  ion-textarea,
+  ion-select,
+  ion-input {
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    background: white;
+    border-radius: 12px;
+    border: 2px solid #e8e8e8;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    
+    &::part(container) {
+      border-radius: 12px;
+    }
+    
+    &:focus-within {
+      border-color: var(--primary-color);
+      box-shadow: 0 2px 8px rgba(56, 128, 255, 0.1);
+    }
+  }
+  
+  ion-textarea {
+    min-height: 120px;
+    
+    &::part(textarea) {
+      line-height: 1.4;
+    }
+  }
+  
+  ion-select {
+    width: 100%;
+    
+    &::part(icon) {
+      color: var(--medium-color);
+    }
+  }
+  
+  ion-input {
+    --padding-top: 16px;
+    --padding-bottom: 16px;
+  }
+}
+
+// Photo Actions Section
 .photo-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   width: 100%;
+  
+  ion-button {
+    --border-radius: 12px;
+    --border-width: 2px;
+    --border-style: dashed;
+    --border-color: var(--medium-color);
+    --color: var(--medium-color);
+    min-height: 52px;
+    margin-bottom: 12px;
+    
+    &:hover {
+      --border-color: var(--primary-color);
+      --color: var(--primary-color);
+    }
+  }
+  
+  ion-text {
+    display: block;
+    text-align: center;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+  }
 }
 
-.photo-actions input[type='file'] {
-  font-size: 0.9rem;
-}
-
+// Photo Preview
 .photo-preview {
-  margin-top: 12px;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
+  margin-top: 16px;
+  
+  img {
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 2px solid white;
+    transition: transform 0.2s ease;
+    
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
 }
 
-.photo-preview img {
-  width: 100%;
-  max-height: 220px;
-  object-fit: cover;
+// Location Display
+ion-text {
+  p {
+    margin: 8px 0 0 0;
+    font-size: 0.9rem;
+    color: var(--medium-color);
+    background: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 2px solid #e8e8e8;
+    
+    &:first-child {
+      color: var(--success-color);
+      font-weight: 500;
+    }
+    
+    &:last-child {
+      color: var(--warning-color);
+      font-style: italic;
+    }
+  }
+}
+
+// Submit Button
+ion-button[type="submit"] {
+  --border-radius: 14px;
+  --box-shadow: 0 4px 16px rgba(235, 68, 90, 0.3);
+  min-height: 56px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin: 32px 0 16px 0;
+  transition: all 0.3s ease;
+  
+  &:not([disabled]):active {
+    transform: scale(0.98);
+  }
+  
+  &[disabled] {
+    --background: var(--medium-color);
+    --box-shadow: none;
+    opacity: 0.6;
+  }
+}
+
+// Status Messages
+ion-text[color="success"] {
+  display: block;
+  text-align: center;
+  font-weight: 500;
+  font-size: 1rem;
+  padding: 16px;
+  background: rgba(45, 211, 111, 0.1);
   border-radius: 12px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--success-color);
+  margin: 16px 0;
+}
+
+ion-text[color="danger"] {
+  display: block;
+  text-align: center;
+  font-weight: 500;
+  font-size: 1rem;
+  padding: 16px;
+  background: rgba(235, 68, 90, 0.1);
+  border-radius: 12px;
+  border: 1px solid var(--danger-color);
+  margin: 16px 0;
+}
+
+// Form Validation Styles
+ion-item {
+  &.ion-invalid {
+    ion-textarea,
+    ion-select,
+    ion-input {
+      border-color: var(--danger-color);
+    }
+  }
+  
+  &.ion-valid {
+    ion-textarea,
+    ion-select,
+    ion-input {
+      border-color: var(--success-color);
+    }
+  }
+}
+
+// Loading State
+.form-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+// Responsive Design
+@media (max-width: 480px) {
+  ion-content {
+    --padding-start: 16px;
+    --padding-end: 16px;
+  }
+  
+  .photo-preview {
+    justify-content: center;
+    
+    img {
+      width: 80px;
+      height: 80px;
+    }
+  }
+  
+  ion-button[type="submit"] {
+    min-height: 52px;
+    font-size: 1rem;
+  }
+}
+
+// Animation for form elements
+ion-item {
+  animation: fadeInUp 0.5s ease-out;
+  
+  @for $i from 1 through 6 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 0.1}s;
+    }
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Focus states for accessibility
+ion-textarea:focus-within,
+ion-select:focus-within,
+ion-input:focus-within {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+// Custom select options styling
+ion-select::part(placeholder),
+ion-select::part(text) {
+  color: var(--dark-color);
+}
+
+// Number input styling
+ion-input[type="number"] {
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+}
+
+// Enhanced photo section
+.photo-section {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  
+  .section-title {
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 16px;
+    font-size: 1rem;
+  }
+}
+
+// Location section styling
+.location-section {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  
+  .location-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    
+    &.success {
+      color: var(--success-color);
+    }
+    
+    &.warning {
+      color: var(--warning-color);
+    }
+    
+    ion-icon {
+      font-size: 1.2rem;
+    }
+  }
+}
+
+// Touch feedback improvements
+ion-button {
+  transition: transform 0.1s ease;
+  
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// Scrollbar styling for webkit
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+// Icon styles for form
+ion-item {
+  ion-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    ion-icon {
+      font-size: 1.1rem;
+      color: var(--primary-color);
+    }
+  }
+}
+
+// Location status with icons
+.location-success,
+.location-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0 0;
+  font-size: 0.9rem;
+  background: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 2px solid #e8e8e8;
+  
+  ion-icon {
+    font-size: 1.1rem;
+  }
+}
+
+.location-success {
+  color: var(--success-color);
+  border-color: var(--success-color);
+  background: rgba(45, 211, 111, 0.05);
+}
+
+.location-warning {
+  color: var(--warning-color);
+  border-color: var(--warning-color);
+  background: rgba(255, 196, 9, 0.05);
+}
+
+// Status messages with icons
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 1rem;
+  padding: 16px;
+  border-radius: 12px;
+  margin: 16px 0;
+  
+  ion-icon {
+    font-size: 1.2rem;
+  }
+  
+  &[color="success"] {
+    background: rgba(45, 211, 111, 0.1);
+    border: 1px solid var(--success-color);
+  }
+  
+  &[color="danger"] {
+    background: rgba(235, 68, 90, 0.1);
+    border: 1px solid var(--danger-color);
+  }
+}
+
+// Button icons
+ion-button {
+  ion-icon {
+    font-size: 1.1rem;
+  }
+}
+
+// Select options with icons
+ion-select-option {
+  ion-icon {
+    margin-right: 8px;
+    font-size: 1rem;
+  }
 }

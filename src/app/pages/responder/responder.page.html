@@ -1,136 +1,105 @@
-<ion-header>
+<ion-header [translucent]="false">
   <ion-toolbar>
-    <ion-title>Responder</ion-title>
+    <ion-title>Responder Dashboard</ion-title>
     <ion-buttons slot="end">
-      <ion-button color="medium" (click)="logout()">Logout</ion-button>
+      <ion-button (click)="logout()">
+        <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
+      </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<ion-content [fullscreen]="true">
   <div class="map-wrapper">
-    <div class="map-container" #mapRef></div>
-
+    <div #mapRef class="map-container"></div>
+    
+    <!-- Status Bar -->
     <div class="status-bar">
       <ion-item lines="none">
-        <ion-icon name="pulse-outline" slot="start"></ion-icon>
+        <ion-icon name="location" slot="start"></ion-icon>
         <ion-label>
-          <h3>{{ online ? 'You are online' : 'You are offline' }}</h3>
-          <p>
-            {{ online ? 'Alerts update live while you stay connected.' : 'Toggle on when you are ready to help.' }}
-          </p>
+          <h3>Responder Status</h3>
+          <p>{{ online ? 'Online - Accepting alerts' : 'Offline' }}</p>
         </ion-label>
-        <ion-toggle [checked]="online" (ionChange)="toggleOnline($event)"></ion-toggle>
+        <ion-toggle 
+          [checked]="online" 
+          (ionChange)="toggleOnline($event)"
+          aria-label="Online Status">
+        </ion-toggle>
       </ion-item>
     </div>
-    <!-- MISSION PANEL (visible only while an alert is accepted) -->
-    @if (currentMission) {
-      <div class="mission-panel">
-        <h2>Active mission</h2>
-        <ion-list lines="none">
-          <ion-item>
-            <ion-label>
-              <h3>{{ currentMission!.type }}</h3>
-              <p>{{ currentMission!.description }}</p>
-              <p class="meta">{{ currentMission!.createdAt | date: 'short' }}</p>
-              @if (currentMission!.numInjured !== null && currentMission!.numInjured !== undefined) {
-                <p class="meta">Injured: {{ currentMission!.numInjured }}</p>
-              }
-            </ion-label>
-          </ion-item>
-        </ion-list>
-        <div class="mission-actions">
-          <ion-button color="warning" (click)="cancelMission()" [disabled]="missionBusy">Cancel mission</ion-button>
-          <ion-button color="success" (click)="openComplete()" [disabled]="missionBusy">Complete</ion-button>
-          <ion-button fill="outline" (click)="openInMaps()">Open in Maps</ion-button>
-        </div>
-      </div>
-    }
-    @if (!currentMission && alerts.length) {
-      <div class="alerts-panel">
-        <h2>Active Alerts</h2>
-        <ion-list lines="none">
-          @for (alert of alerts; track alert._id) {
-            <ion-item>
-              <ion-label>
-                <h3>{{ alert.type }}</h3>
-                <p>{{ alert.description }}</p>
-                <p class="meta">{{ alert.createdAt | date: 'short' }}</p>
-                @if (alert.numInjured !== null && alert.numInjured !== undefined) {
-                  <p class="meta">
-                    Injured: {{ alert.numInjured }}
-                  </p>
-                }
-              </ion-label>
-              <ion-button
-                slot="end"
-                color="primary"
-                fill="solid"
-                size="small"
-                [disabled]="acceptingId === alert._id || !online"
-                (click)="acceptAlert(alert)"
-              >
-                @if (acceptingId === alert._id) {
-                  <ion-spinner slot="start" name="crescent"></ion-spinner>
-                }
-                {{ acceptingId === alert._id ? 'Accepting…' : 'Accept' }}
-              </ion-button>
-            </ion-item>
-          }
-        </ion-list>
-      </div>
-    }
 
-    @if (!currentMission && !alerts.length && !loadingAlerts) {
-      <div class="empty-state">
-        <ion-icon name="notifications-off-outline"></ion-icon>
-        <p>No alerts right now. Stay ready!</p>
-      </div>
-    }
-
-    @if (loadingAlerts) {
-      <div class="loading-overlay">
-        <ion-spinner name="dots"></ion-spinner>
-      </div>
-    }
-  </div>
-  <!-- COMPLETE MISSION MODAL -->
-  <ion-modal [isOpen]="completeOpen" (didDismiss)="closeComplete()">
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Mission report</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="closeComplete()">Close</ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content>
+    <!-- Mission Panel -->
+    <div class="mission-panel" *ngIf="currentMission">
+      <h2>Current Mission</h2>
       <ion-list>
         <ion-item>
-          <ion-label position="stacked">Outcome</ion-label>
-          <ion-select [(ngModel)]="missionReport.outcome">
-            <ion-select-option value="resolved">Resolved</ion-select-option>
-            <ion-select-option value="not_found">Not found / could not reach</ion-select-option>
-            <ion-select-option value="false_alarm">False alarm</ion-select-option>
-            <ion-select-option value="other">Other</ion-select-option>
-          </ion-select>
-        </ion-item>
-        <ion-item>
-          <ion-label position="stacked">Number injured (optional)</ion-label>
-          <ion-input type="number" inputmode="numeric" [(ngModel)]="missionReport.numInjured"></ion-input>
-        </ion-item>
-        <ion-item>
-          <ion-label position="stacked">Notes</ion-label>
-          <ion-textarea rows="6" autoGrow="true" [(ngModel)]="missionReport.notes"></ion-textarea>
+          <ion-label>
+            <h3>{{ currentMission.type }}</h3>
+            <p>{{ currentMission.description }}</p>
+            <p class="meta">
+              Created: {{ currentMission.createdAt | date:'short' }}
+              <span *ngIf="currentMission.numInjured != null">
+                • Injured: {{ currentMission.numInjured }}
+              </span>
+            </p>
+          </ion-label>
         </ion-item>
       </ion-list>
+      
       <div class="mission-actions">
-        <ion-button color="success" expand="block" [disabled]="missionBusy" (click)="submitComplete()">
-          <ion-spinner *ngIf="missionBusy" name="crescent" slot="start"></ion-spinner>
-          Save report & resolve
+        <ion-button expand="block" color="primary" (click)="openInMaps()">
+          <ion-icon name="navigate" slot="start"></ion-icon>
+          Open in Maps
+        </ion-button>
+        <ion-button expand="block" color="success" (click)="openComplete()" [disabled]="missionBusy">
+          <ion-icon name="checkmark" slot="start"></ion-icon>
+          Complete Mission
+        </ion-button>
+        <ion-button expand="block" color="medium" (click)="cancelMission()" [disabled]="missionBusy">
+          <ion-icon name="close" slot="start"></ion-icon>
+          Cancel Mission
         </ion-button>
       </div>
-    </ion-content>
-  </ion-modal>
+    </div>
 
+    <!-- Alerts Panel -->
+    <div class="alerts-panel" *ngIf="!currentMission && alerts.length > 0">
+      <h2>Nearby Alerts ({{ alerts.length }})</h2>
+      <ion-list>
+        <ion-item *ngFor="let alert of alerts">
+          <ion-label>
+            <h3>{{ alert.type }}</h3>
+            <p>{{ alert.description }}</p>
+            <p class="meta">
+              Created: {{ alert.createdAt | date:'short' }}
+              <span *ngIf="alert.numInjured != null">
+                • Injured: {{ alert.numInjured }}
+              </span>
+            </p>
+          </ion-label>
+          <ion-button 
+            slot="end" 
+            fill="solid" 
+            color="primary" 
+            (click)="acceptAlert(alert)"
+            [disabled]="acceptingId === alert._id">
+            <ion-spinner *ngIf="acceptingId === alert._id"></ion-spinner>
+            <span *ngIf="acceptingId !== alert._id">Accept</span>
+          </ion-button>
+        </ion-item>
+      </ion-list>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="!currentMission && !loadingAlerts && alerts.length === 0">
+      <ion-icon name="notifications-off-outline"></ion-icon>
+      <p>No alerts nearby</p>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-overlay" *ngIf="loadingAlerts">
+      <ion-spinner></ion-spinner>
+    </div>
+  </div>
 </ion-content>

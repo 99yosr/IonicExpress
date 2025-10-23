@@ -1,156 +1,326 @@
-:host {
-  display: block;
+/* Global styles optimized for Huawei Y9 2019 */
+:root {
+  --ion-safe-area-top: 20px;
+  --ion-safe-area-bottom: 20px;
+  --primary-color: #3880ff;
+  --success-color: #2dd36f;
+  --warning-color: #ffc409;
+  --danger-color: #eb445a;
+  --light-color: #f4f5f8;
+  --medium-color: #92949c;
+  --dark-color: #222428;
+  --toolbar-red: #ff3b30; /* Added red color for toolbar */
 }
 
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: #f8f9fa;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Fixed Header styles - red background */
+/* Fixed Header styles - red background */
+ion-header {
+  background: linear-gradient(135deg, var(--danger-color) 0%, #c9334c 100%);
+  
+  ion-toolbar {
+    --background: transparent;
+    --color: white;
+    padding-top: var(--ion-safe-area-top, 20px);
+    
+    ion-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+    
+    ion-button {
+      --color: white;
+      --background-hover: rgba(255, 255, 255, 0.1);
+      font-weight: 500;
+      min-height: 44px;
+    }
+  }
+}
+
+
+ion-button {
+  --border-radius: 8px;
+  font-weight: 500;
+  text-transform: none;
+  min-height: 44px;
+}
+
+/* Content area - fixed to start below toolbar */
 ion-content {
-  --background: #f7f7f7;
+  --background: #f8f9fa;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --offset-top: 0px !important; /* Remove any offset */
 }
 
+/* Map container - fixed positioning */
 .map-wrapper {
   position: relative;
-  height: 100%;
+  height: 100vh;
+  width: 100%;
+  z-index: 1;
+  /* Make sure map starts from top of screen */
+  top: 0;
+  left: 0;
 }
 
 .map-container {
-  position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
+  background-color: #e8eaed;
+  position: absolute;
+  top: 0; /* Start from very top */
+  left: 0;
   z-index: 1;
 }
 
+/* Status bar - positioned below toolbar */
 .status-bar {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  right: 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  z-index: 7;
+  top: calc(100px + var(--ion-safe-area-top));
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Center adjustment */
+  width: 90%; /* Take 90% of screen width instead of full */
+  max-width: 400px; /* Optional: set maximum width */
+  z-index: 50;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
 }
 
 .status-bar ion-item {
+  --padding-start: 16px;
+  --padding-end: 16px;
   --inner-padding-end: 0;
+  --background: white;
+}
+
+.status-bar ion-icon {
+  font-size: 1.5rem;
+  color: var(--toolbar-red); /* Changed to match red toolbar */
 }
 
 .status-bar h3 {
-  margin: 0;
-  font-size: 0.95rem;
   font-weight: 600;
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+  color: black; /* Black text */
 }
 
 .status-bar p {
-  margin: 4px 0 0;
-  font-size: 0.8rem;
-  color: #666;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--medium-color);
+  line-height: 1.4;
 }
 
+.status-bar ion-toggle {
+  --handle-width: 22px;
+  --handle-height: 22px;
+  --background-checked: var(--success-color);
+  z-index: 60;
+}
+
+/* Mission and alerts panels - fixed z-index hierarchy */
+.mission-panel,
 .alerts-panel {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 16px 16px 24px;
-  max-height: min(60vh, 420px);
-  box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.12);
-  z-index: 6;
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: 18px 18px 0 0;
-}
-
-.alerts-panel h2 {
-  margin: 0 0 12px;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.alerts-panel h3 {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.alerts-panel p {
-  margin: 4px 0;
-}
-
-.alerts-panel p.meta {
-  font-size: 0.75rem;
-  color: #666;
-}
-
-.alerts-panel ion-list {
-  flex: 1;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 40;
+  padding: 16px;
+  max-height: 50vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 32px;
 }
 
+.mission-panel h2,
+.alerts-panel h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: black; /* Black text */
+}
+
+/* List items */
+ion-list {
+  background: transparent;
+  padding: 0;
+}
+
+ion-item {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  --background: transparent;
+  margin-bottom: 12px;
+}
+
+ion-item:last-child {
+  margin-bottom: 0;
+}
+
+ion-label h3 {
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  font-size: 1rem;
+  color: black; /* Black text */
+}
+
+ion-label p {
+  margin: 0 0 6px 0;
+  font-size: 0.9rem;
+  color: var(--medium-color);
+  line-height: 1.4;
+}
+
+.meta {
+  font-size: 0.8rem !important;
+  color: #8e8e93 !important;
+  margin-top: 4px !important;
+}
+
+/* Mission actions */
+.mission-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.mission-actions ion-button {
+  margin: 0;
+}
+
+/* Empty state */
+.empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state ion-icon {
+  font-size: 3rem;
+  color: var(--medium-color);
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--medium-color);
+  font-size: 1rem;
+}
+
+/* Loading overlay */
 .loading-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
   display: flex;
-  align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.6);
-  z-index: 8;
+  align-items: center;
+  z-index: 100;
 }
 
-.empty-state {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  color: #666;
-  z-index: 6;
+/* Toast styling - highest z-index */
+ion-toast {
+  --z-index: 1000 !important;
+  z-index: 1000 !important;
 }
 
-.empty-state ion-icon {
-  font-size: 2.2rem;
-  margin-bottom: 8px;
+/* Modal styles */
+ion-modal {
+  --height: auto;
+  --border-radius: 16px;
+  --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  z-index: 200;
 }
 
-.mission-panel {
-  position: absolute;
-  bottom: calc(24px + env(safe-area-inset-bottom));
-  left: 16px;
-  right: 16px;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 16px 16px 24px;
-  box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.12);
-  border-radius: 20px;
-  z-index: 7;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* Responsive adjustments */
+@media (max-height: 700px) {
+  .mission-panel,
+  .alerts-panel {
+    max-height: 40vh;
+  }
+  
+  .status-bar {
+    top: calc(50px + var(--ion-safe-area-top)); /* Adjusted for smaller toolbar */
+  }
 }
 
-.mission-panel h2 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
+@media (max-height: 600px) {
+  .status-bar {
+    top: calc(45px + var(--ion-safe-area-top));
+  }
 }
 
-.mission-panel .meta {
-  font-size: 0.75rem;
-  color: #666;
+/* Animation for smoother transitions */
+.mission-panel,
+.alerts-panel,
+.status-bar {
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-.mission-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+/* Button states for better feedback */
+ion-button:active {
+  transform: scale(0.98);
+  transition: transform 0.1s;
 }
 
-.mission-actions ion-button {
-  flex: 1 1 140px;
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Ensure map controls are properly positioned */
+.leaflet-top {
+  top: 100px !important; /* Make sure map controls are below toolbar */
+}
+
+.leaflet-bottom {
+  bottom: 20px !important;
 }

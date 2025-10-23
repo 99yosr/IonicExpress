@@ -15,7 +15,32 @@ import {
   IonTextarea,
   IonText,
   ActionSheetController,
+  IonIcon, // Add this import
+  IonSpinner, // Add this import
+  IonBackButton, // Add this import
+  IonButtons // Add this import
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { 
+  camera,
+  images,
+  locationOutline, // Use locationOutline instead of location
+  checkmarkCircle,
+  alertCircle,
+  documentTextOutline,
+  warningOutline,
+  carOutline,
+  flameOutline,
+  medkitOutline,
+  shieldOutline,
+  personOutline,
+  cameraOutline,
+  imageOutline,
+  timeOutline,
+  sendOutline,
+  
+} from 'ionicons/icons';
+
 import { AlertsService } from '../../services/alerts.service';
 import { Geolocation } from '@capacitor/geolocation';
 import { Photos } from '../../services/photo.service';
@@ -27,6 +52,10 @@ import { Router } from '@angular/router';
   styleUrls: ['./alerts-gen.page.scss'],
   standalone: true,
   imports: [
+    IonBackButton, // Add this import
+    IonButtons, // Add this import
+    IonIcon, 
+    IonSpinner, 
     CommonModule,
     FormsModule,
     IonContent,
@@ -60,11 +89,32 @@ export class AlertsGenPage implements OnInit {
 
   private readonly router = inject(Router);
 
+
   constructor(
     private readonly alertsService: AlertsService,
     private readonly photos: Photos,
     private readonly actionSheetCtrl: ActionSheetController
-  ) {}
+  ) {
+    // Add all icons with full names to avoid conflicts
+    addIcons({
+      camera,
+      images,
+      locationOutline, // Use the full name
+      checkmarkCircle,
+      alertCircle,
+      documentTextOutline,
+      warningOutline,
+      carOutline,
+      flameOutline,
+      medkitOutline,
+      shieldOutline,
+      personOutline,
+      cameraOutline,
+      imageOutline,
+      timeOutline,
+      sendOutline
+    });
+  }
 
   ngOnInit(): void {
     void this.getCurrentLocation();
@@ -157,47 +207,53 @@ export class AlertsGenPage implements OnInit {
     this.form.update((prev) => ({ ...prev, lat, lng }));
   }
 
-  async submitAlert(): Promise<void> {
-    this.loading = true;
-    this.errorMsg = '';
-    this.successMsg = '';
+ async submitAlert(): Promise<void> {
+  this.loading = true;
+  this.errorMsg = '';
+  this.successMsg = '';
 
-    try {
-      const { description, type, numInjured, file, lat, lng } = this.form();
-      if (!lat || !lng) {
-        throw new Error('Location missing');
-      }
-
-      const response = await this.alertsService.create({
-        description,
-        type,
-        numInjured: numInjured ?? undefined,
-        file: file ?? undefined,
-        lat,
-        lng,
-      });
-
-      this.successMsg = `Alert sent successfully. Nearby responders notified: ${response.nearbyRespondersCount}`;
-      this.form.set({
-        description: '',
-        type: '',
-        numInjured: null,
-        file: null,
-        lat,
-        lng,
-      });
-      this.temporaryPhotos = [];
-
-      await this.router.navigateByUrl('/alerts', {
-        replaceUrl: true,
-        state: { alertCreated: { nearby: response.nearbyRespondersCount } },
-      });
-    } catch (err: any) {
-      this.errorMsg = err?.error?.message || 'Failed to send alert';
-    } finally {
-      this.loading = false;
+  try {
+    const { description, type, numInjured, file, lat, lng } = this.form();
+    if (!lat || !lng) {
+      throw new Error('Location missing');
     }
+
+    const response = await this.alertsService.create({
+      description,
+      type,
+      numInjured: numInjured ?? undefined,
+      file: file ?? undefined,
+      lat,
+      lng,
+    });
+
+    this.successMsg = `Alert sent successfully. Nearby responders notified: ${response.nearbyRespondersCount}`;
+    this.form.set({
+      description: '',
+      type: '',
+      numInjured: null,
+      file: null,
+      lat,
+      lng,
+    });
+    this.temporaryPhotos = [];
+
+    // Navigate back to alert giver page with the new alert data
+    await this.router.navigateByUrl('/alerts', {
+      replaceUrl: false,
+      state: { 
+        alertCreated: { 
+          nearby: response.nearbyRespondersCount,
+          newAlert: response.alert // Your API needs to return this
+        } 
+      },
+    });
+  } catch (err: any) {
+    this.errorMsg = err?.error?.message || 'Failed to send alert';
+  } finally {
+    this.loading = false;
   }
+}
 
   async presentActionSheet(): Promise<void> {
     const actionSheet = await this.actionSheetCtrl.create({

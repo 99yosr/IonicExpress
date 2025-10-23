@@ -1,13 +1,20 @@
 <ion-header>
-  <ion-toolbar color="primary">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/alerts"></ion-back-button>
+    </ion-buttons>
     <ion-title>Report Emergency</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
   <form (ngSubmit)="submitAlert()">
+    <!-- Description with icon -->
     <ion-item>
-      <ion-label position="stacked">Description</ion-label>
+      <ion-label position="stacked">
+        <ion-icon name="document-text-outline" slot="start"></ion-icon>
+        Description
+      </ion-label>
       <ion-textarea
         [value]="form().description"
         (ionInput)="onDescriptionInput($event)"
@@ -16,22 +23,42 @@
       ></ion-textarea>
     </ion-item>
 
+    <!-- Type with icon -->
     <ion-item>
-      <ion-label position="stacked">Type</ion-label>
+      <ion-label position="stacked">
+        <ion-icon name="warning-outline" slot="start"></ion-icon>
+        Emergency Type
+      </ion-label>
       <ion-select
         [value]="form().type"
         (ionChange)="onTypeChange($event)"
         required
       >
-        <ion-select-option value="accident">Accident</ion-select-option>
-        <ion-select-option value="fire">Fire</ion-select-option>
-        <ion-select-option value="medical">Medical</ion-select-option>
-        <ion-select-option value="crime">Crime</ion-select-option>
+        <ion-select-option value="accident">
+          <ion-icon name="car-outline" slot="start"></ion-icon>
+          Accident
+        </ion-select-option>
+        <ion-select-option value="fire">
+          <ion-icon name="flame-outline" slot="start"></ion-icon>
+          Fire
+        </ion-select-option>
+        <ion-select-option value="medical">
+          <ion-icon name="medkit-outline" slot="start"></ion-icon>
+          Medical
+        </ion-select-option>
+        <ion-select-option value="crime">
+          <ion-icon name="shield-outline" slot="start"></ion-icon>
+          Crime
+        </ion-select-option>
       </ion-select>
     </ion-item>
 
+    <!-- Number injured with icon -->
     <ion-item>
-      <ion-label position="stacked">Number of injured (optional)</ion-label>
+      <ion-label position="stacked">
+        <ion-icon name="person-outline" slot="start"></ion-icon>
+        Number of injured (optional)
+      </ion-label>
       <ion-input
         type="number"
         [value]="form().numInjured"
@@ -39,40 +66,68 @@
       ></ion-input>
     </ion-item>
 
+    <!-- Photo with icon -->
     <ion-item>
-      <ion-label position="stacked">Photo (optional)</ion-label>
+      <ion-label position="stacked">
+        <ion-icon name="camera-outline" slot="start"></ion-icon>
+        Photo (optional)
+      </ion-label>
       <div class="photo-actions">
         <ion-button type="button" fill="outline" expand="block" (click)="presentActionSheet()" [disabled]="loading">
+          <ion-icon name="camera" slot="start"></ion-icon>
           Use camera or gallery
         </ion-button>
 
-        <ion-text color="medium" *ngIf="form().file">{{ form().file?.name }}</ion-text>
+        <ion-text color="medium" *ngIf="form().file">
+          <ion-icon name="image-outline" slot="start"></ion-icon>
+          {{ form().file?.name }}
+        </ion-text>
         <div class="photo-preview" *ngIf="temporaryPhotos.length">
           <img *ngFor="let photo of temporaryPhotos" [src]="photo" alt="Selected alert photo" />
         </div>
       </div>
     </ion-item>
 
+    <!-- Location with icon -->
     <ion-item>
-      <ion-label position="stacked">Location</ion-label>
+      <ion-label position="stacked">
+        <ion-icon name="location-outline" slot="start"></ion-icon>
+        Location
+      </ion-label>
       <ion-text>
-        <p *ngIf="form().lat && form().lng">
+        <p *ngIf="form().lat && form().lng" class="location-success">
+          <ion-icon name="checkmark-circle" slot="start"></ion-icon>
           Lat: {{ form().lat | number: '1.5-5' }}, Lng: {{ form().lng | number: '1.5-5' }}
         </p>
-        <p *ngIf="!form().lat">Fetching location...</p>
+        <p *ngIf="!form().lat" class="location-warning">
+          <ion-icon name="time-outline" slot="start"></ion-icon>
+          Fetching location...
+        </p>
       </ion-text>
     </ion-item>
 
+    <!-- Submit button with icon -->
     <ion-button
       expand="block"
       type="submit"
       color="danger"
       [disabled]="loading || !form().lat"
     >
+      <ion-icon name="send-outline" slot="start" *ngIf="!loading"></ion-icon>
+      <ion-spinner name="crescent" slot="start" *ngIf="loading"></ion-spinner>
       {{ loading ? 'Sending...' : 'Send Alert' }}
     </ion-button>
   </form>
 
-  <ion-text color="success" *ngIf="successMsg">{{ successMsg }}</ion-text>
-  <ion-text color="danger" *ngIf="errorMsg">{{ errorMsg }}</ion-text>
+  <!-- Success message with icon -->
+  <ion-text color="success" *ngIf="successMsg" class="status-message">
+    <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+    {{ successMsg }}
+  </ion-text>
+
+  <!-- Error message with icon -->
+  <ion-text color="danger" *ngIf="errorMsg" class="status-message">
+    <ion-icon name="alert-circle" slot="start"></ion-icon>
+    {{ errorMsg }}
+  </ion-text>
 </ion-content>

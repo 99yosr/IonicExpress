@@ -42,6 +42,9 @@ import { CompleteReportModal } from '../../modals/complete-report.modal';
 import jsPDF from 'jspdf';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+
+import { addIcons } from 'ionicons';
+import { logOutOutline, location, navigate, checkmark, close, notificationsOffOutline } from 'ionicons/icons';
 declare const L: any;
 
 @Component({
@@ -125,6 +128,18 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
     }
   };
 
+  constructor() {
+    // Add the icons you're using
+    addIcons({ 
+      logOutOutline, 
+      location, 
+      navigate, 
+      checkmark, 
+      close, 
+      notificationsOffOutline 
+    });
+  }
+
   /**
    * Establishes socket listeners when the component is created.
    */
@@ -138,11 +153,26 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   /**
    * After Ionic renders the view we can render the map, load alerts, and try to go online.
    */
-  async ngAfterViewInit(): Promise<void> {
-    await this.initMap();
-    await this.loadAlerts();
-    await this.goOnline();
-  }
+private fixMapPosition(): void {
+  // Force the map to take full height and position properly
+  setTimeout(() => {
+    if (this.map) {
+      this.map.invalidateSize();
+      
+      // Reset the map view to ensure it's properly positioned
+      const currentCenter = this.map.getCenter();
+      this.map.setView(currentCenter, this.map.getZoom());
+    }
+  }, 500);
+}
+
+// Call this in ngAfterViewInit
+async ngAfterViewInit(): Promise<void> {
+  await this.initMap();
+  await this.loadAlerts();
+  await this.goOnline();
+  this.fixMapPosition();
+}
 
   /**
    * Removes listeners, stops geolocation and tears down Leaflet when leaving the page.
@@ -695,13 +725,15 @@ export class ResponderPage implements OnInit, AfterViewInit, OnDestroy {
   }
 }
 
+
+
+
 private async exportMissionPdf(mission: Alert, report: {
   outcome: 'resolved'|'not_found'|'false_alarm'|'other';
   notes?: string;
   numInjured?: number;
 }) {
   const doc = new jsPDF();
-
   const lines = [
     'Mission Report',
     '',
@@ -725,34 +757,56 @@ private async exportMissionPdf(mission: Alert, report: {
     doc.text(lines[i], 14, y);
   }
 
-  // base64 PDF
+
+  if (this.isWeb()) {
+    doc.save(`mission_${mission._id}.pdf`);
+    await this.presentToast('PDF downloaded.', 'success');
+    return;
+  }
+
   const base64 = doc.output('datauristring').split(',')[1];
   const filename = `mission_${mission._id}_${Date.now()}.pdf`;
 
-  // save into app Documents
   await Filesystem.writeFile({
-    path:  `Download/mission_${Date.now()}.pdf`,
+    path: filename,
     data: base64,
     directory: Directory.Documents,
   });
 
-  // get a sharable URI and open the platform share sheet
   const { uri } = await Filesystem.getUri({
     path: filename,
     directory: Directory.Documents,
   });
 
-  try {
-    await Share.share({
-      title: 'Mission report',
-      text: 'PDF saved. Share or move to Downloads.',
-      url: uri, // if Share complains on iOS, pass a data URL instead:
-                // 'data:application/pdf;base64,' + base64
-    });
-  } catch {
-    // optional fallback toast
-  }
+  await Share.share({
+    title: 'Mission report',
+    text: 'PDF saved. Share or move to Downloads.',
+    url: uri,
+  });
 
   await this.presentToast('PDF saved to Documents.', 'success');
 }
+
+private isWeb(): boolean {
+  return !(window as any).Capacitor?.isNativePlatform;
+}
+/**
+ * Ensures proper z-index hierarchy when elements might overlap
+ */
+private ensureZIndexHierarchy(): void {
+  // Force header and toolbar to be solid
+  const header = document.querySelector('ion-header');
+  const toolbar = document.querySelector('ion-toolbar');
+  
+  if (header) {
+    (header as HTMLElement).style.backgroundColor = 'var(--primary-color)';
+  }
+  
+  if (toolbar) {
+    (toolbar as HTMLElement).style.backgroundColor = 'var(--primary-color)';
+    (toolbar as HTMLElement).style.setProperty('--background', 'var(--primary-color)', 'important');
+  }
+}
+
+
 }
